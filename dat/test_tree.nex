@@ -1,0 +1,13 @@
+#NEXUS
+[R-package APE, Tue Jan  5 18:45:52 2021]
+
+BEGIN TAXA;
+	DIMENSIONS NTAX = 4099;
+	TAXLABELS
+		Erethizon_dorsatum
+	;
+END;
+BEGIN TREES;
+	TRANSLATE
+		1	Erethizon_dorsatum,
+END;
