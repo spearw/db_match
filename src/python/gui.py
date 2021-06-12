@@ -1,13 +1,15 @@
 import sys
 import time
+import requests
 from threading import Thread
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox, QProgressDialog, QMainWindow, QVBoxLayout, \
     QHBoxLayout, QGridLayout, QLabel, QSizePolicy, QLineEdit
+from PyQt5.QtGui import QImage, QPixmap
 from definitions import DB_PATH
 from definitions import TREE_PATH
-from src.python.match import match, write_file
+from src.python.match import match, write_file, get_wiki_image
 
 
 class LoadingWindow(QMainWindow):
@@ -72,8 +74,11 @@ class Compare(QMainWindow):
         self.suggestions_layout = QHBoxLayout()
         self.layout.addLayout(self.suggestions_layout, 1, 1)
 
+        self.images = QHBoxLayout()
+        self.layout.addLayout(self.images, 2, 1)
+
         self.buttons = QHBoxLayout()
-        self.layout.addLayout(self.buttons, 2, 1)
+        self.layout.addLayout(self.buttons, 3, 1)
 
         self.suggestion_label = QLabel("Suggestion!")
         self.suggestion_label.setAlignment(Qt.AlignCenter)
@@ -95,6 +100,9 @@ class Compare(QMainWindow):
 
 
     def compare_mismatch(self, taxa_iter, compare_window):
+
+        #TODO: when taxa_iter is done (file is complete) - need to run write_file
+
         next_taxa = next(taxa_iter)
         print(next_taxa)
         if type(next_taxa) == str:
@@ -107,10 +115,6 @@ class Compare(QMainWindow):
             i = 1
             self.show_suggestions(next_taxa, taxa_iter, i)
 
-
-
-            #TODO: Implement next feature, where it shows the next set of items + skip if there's nothing in the results
-
             compare_window.setWindowTitle(db_taxa)
             compare_window.setGeometry(100, 100, 600, 400)
             compare_window.show()
@@ -121,15 +125,15 @@ class Compare(QMainWindow):
 
         self.line_edit.clear()
 
-        #TODO: passing compare_window instead of Compare(self) will refer to original window, but perhaps it won't be possible to keep original window
-        # it does seem deleting widgets is tedious, so will have to decide whether to delete content from window, or just put a window where the old one was
         self.compare_mismatch(taxa_iter, compare_window)
 
     def show_suggestions(self, next_taxa, taxa_iter, i):
 
-        # Clear old buttons
+        # Clear old buttons + images
         for j in reversed(range(self.suggestions_layout.count())):
             self.suggestions_layout.itemAt(j).widget().setParent(None)
+        for k in reversed(range(self.images.count())):
+            self.images.itemAt(k).widget().setParent(None)
 
         print(next_taxa)
 
@@ -143,6 +147,18 @@ class Compare(QMainWindow):
 
             if i <= 3:
                 for suggestion in suggestions:
+
+                    #TODO: add images from wiki
+                    url_image = get_wiki_image(suggestion)
+                    image = QImage()
+                    image.loadFromData(requests.get(url_image).content)
+
+                    image_label = QLabel()
+                    image_label.setScaledContents(True)
+                    image_label.setPixmap(QPixmap(image))
+                    image_label.setMaximumSize(200, 200)
+                    image_label.show()
+                    self.images.addWidget(image_label)
 
                     print(suggestion)
                     self.btn = QPushButton(suggestion, self)
@@ -175,7 +191,6 @@ class Compare(QMainWindow):
         except Exception: pass
 
         # Chooses the original spelling, unmodified
-        # TODO: implement typing in manually
         self.skip_btn.clicked.connect(lambda: self.confirm_suggestion(self.line_edit.text(), taxa_iter, self))
 
 def main():
