@@ -1,11 +1,9 @@
 import sys
-import time
 import requests
-from threading import Thread
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox, QProgressDialog, QMainWindow, QVBoxLayout, \
-    QHBoxLayout, QGridLayout, QLabel, QSizePolicy, QLineEdit
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMainWindow, QVBoxLayout, \
+    QHBoxLayout, QGridLayout, QLabel, QLineEdit
 from PyQt5.QtGui import QImage, QPixmap
 from definitions import DB_PATH, TREE_PATH, OUTPUT_PATH
 from src.python.match import match, write_file, get_wiki_image, get_wiki_section
