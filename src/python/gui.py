@@ -7,9 +7,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox, QProgressDialog, QMainWindow, QVBoxLayout, \
     QHBoxLayout, QGridLayout, QLabel, QSizePolicy, QLineEdit
 from PyQt5.QtGui import QImage, QPixmap
-from definitions import DB_PATH
-from definitions import TREE_PATH
-from src.python.match import match, write_file, get_wiki_image
+from definitions import DB_PATH, TREE_PATH, OUTPUT_PATH
+from src.python.match import match, write_file, get_wiki_image, get_wiki_section
 
 
 class LoadingWindow(QMainWindow):
@@ -18,6 +17,7 @@ class LoadingWindow(QMainWindow):
         self.setWindowTitle("Loading, please wait...")
 
 class MainMenu(QMainWindow):
+    #TODO: allow for setting of DB_PATH, TREE_PATH, and OUTPUT_PATH before run
     def __init__(self, parent=None):
         super(MainMenu, self).__init__(parent)
         self.pushButton = QPushButton("Run")
@@ -101,23 +101,26 @@ class Compare(QMainWindow):
 
     def compare_mismatch(self, taxa_iter, compare_window):
 
-        #TODO: when taxa_iter is done (file is complete) - need to run write_file
-
-        next_taxa = next(taxa_iter)
+        next_taxa = next(taxa_iter, None)
         print(next_taxa)
-        if type(next_taxa) == str:
-            self.taxa_list.append(next_taxa)
-            self.compare_mismatch(taxa_iter, compare_window)
+        if next_taxa:
+            if type(next_taxa) == str:
+                self.taxa_list.append(next_taxa)
+                self.compare_mismatch(taxa_iter, compare_window)
+            else:
+
+                db_taxa = next_taxa[0]
+
+                i = 1
+                self.show_suggestions(next_taxa, taxa_iter, i)
+
+                compare_window.setWindowTitle(db_taxa)
+                compare_window.setGeometry(100, 100, 600, 400)
+                compare_window.show()
         else:
-
-            db_taxa = next_taxa[0]
-
-            i = 1
-            self.show_suggestions(next_taxa, taxa_iter, i)
-
-            compare_window.setWindowTitle(db_taxa)
-            compare_window.setGeometry(100, 100, 600, 400)
-            compare_window.show()
+            # End of file, record results
+            write_file(self.taxa_list, DB_PATH, OUTPUT_PATH)
+            self.close()
 
     def confirm_suggestion(self, suggestion, taxa_iter, compare_window):
         print("You chose:", suggestion)
@@ -148,20 +151,32 @@ class Compare(QMainWindow):
             if i <= 3:
                 for suggestion in suggestions:
 
-                    #TODO: add images from wiki
-                    url_image = get_wiki_image(suggestion)
-                    image = QImage()
-                    image.loadFromData(requests.get(url_image).content)
-
-                    image_label = QLabel()
-                    image_label.setScaledContents(True)
-                    image_label.setPixmap(QPixmap(image))
-                    image_label.setMaximumSize(200, 200)
-                    image_label.show()
-                    self.images.addWidget(image_label)
-
                     print(suggestion)
+                    url_image = get_wiki_image(suggestion)
+
+                    label = QLabel()
+                    label.setScaledContents(True)
+
+                    try:
+                        if url_image != 0:
+                            image = QImage()
+                            image.loadFromData(requests.get(url_image).content)
+                            label.setMaximumSize(200, 200)
+
+                            label.setPixmap(QPixmap(image))
+                        else:
+                            description = get_wiki_section(suggestion, 2)
+                            label.setText(description)
+                            label.setMaximumWidth(200)
+                            label.setWordWrap(True)
+                    except:
+                        label.setText("Cannot find " + suggestion)
+
+                    label.show()
+                    self.images.addWidget(label)
+
                     self.btn = QPushButton(suggestion, self)
+                    self.btn.setMaximumWidth(200)
                     self.btn.adjustSize()
                     self.btn.clicked.connect(lambda: self.confirm_suggestion(suggestion, taxa_iter, self))
                     self.suggestions_layout.addWidget(self.btn)

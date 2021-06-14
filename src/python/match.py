@@ -4,6 +4,7 @@ import wikipedia
 import requests
 import json
 from Levenshtein import distance as levenshtein_distance
+from definitions import DB_PATH, TREE_PATH, OUTPUT_PATH
 
 def match(db_path, tree_path, db_separator ="_", levenshtein_num = 4):
 
@@ -91,17 +92,23 @@ def read_files(db_path, tree_path):
     return dbs, tree
 
 # Takes the completed taxa_list and writes a new file that includes the new taxa names and the rest of the data from db_path
+#TODO: handle multiple input dbs, perhaps with search
 def write_file(taxa_list, db_path, output_path):
-    outf = open(output_path, "w")
-    inf = open(db_path, "r")
+    outf = open(output_path + "/modified.csv", "w")
+
+    fname = os.listdir(db_path)[0]
+    inf = open(os.path.join(db_path, fname), "r")
+
     lines = inf.readlines()
+
+    outf.write(lines.pop(0))
 
     i = 0
     for line in lines:
         csv_line = line.split(",")
 
         # Replace first line with new name, only if not blank
-        if taxa_list[i]:
+        if taxa_list[i] != "":
             csv_line[0] = taxa_list[i]
 
         i += 1
@@ -124,3 +131,6 @@ def get_wiki_image(search_term):
         return img_link
     except:
         return 0
+
+def get_wiki_section(topic, n):
+    return wikipedia.summary(topic, sentences=n)
