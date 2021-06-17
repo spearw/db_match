@@ -136,5 +136,3 @@ def get_wiki_image(search_term):
 
 def get_wiki_section(topic, n):
     return wikipedia.summary(topic, sentences=n)
-
-match("/Users/williamspear/projects/db-match/dat/db", "/Users/williamspear/projects/db-match/dat/tree", "_", 4)
