@@ -18,8 +18,11 @@ def match(db_path, tree_path, db_separator ="_", levenshtein_num = 4):
             suggestions = []
             genus_match = []
             species_match = []
-            genus_name = db_name.split(db_separator,1)[0]
-            species_name = db_name.split(db_separator,1)[1]
+            try:
+                genus_name = db_name.split(db_separator,1)[0]
+                species_name = db_name.split(db_separator,1)[1]
+            except:
+                break
 
             found_match = False
             for tree_name in tree:
@@ -52,7 +55,7 @@ def read_files(db_path, tree_path):
     trees = []
 
     for filename in os.listdir(db_path):
-        with open(os.path.join(db_path, filename), 'r') as f: # open in readonly mode
+        with open(os.path.join(db_path, filename), 'r', encoding="ISO-8859-1") as f: # open in readonly mode
             db = []
             for line in f:
                 # Get name for every line
@@ -64,7 +67,7 @@ def read_files(db_path, tree_path):
             dbs.append(db)
 
     for filename in os.listdir(tree_path):
-        with open(os.path.join(tree_path, filename), 'r') as f: # open in readonly mode
+        with open(os.path.join(tree_path, filename), 'r', encoding="ISO-8859-1") as f: # open in readonly mode
             fname = os.path.basename(f.name)
             tree = []
             copy = False
@@ -93,10 +96,10 @@ def read_files(db_path, tree_path):
 # Takes the completed taxa_list and writes a new file that includes the new taxa names and the rest of the data from db_path
 #TODO: handle multiple input dbs, perhaps with search
 def write_file(taxa_list, db_path, output_path):
-    outf = open(output_path + "/modified.csv", "w")
+    outf = open(output_path + "/modified.csv", "w", encoding="ISO-8859-1")
 
     fname = os.listdir(db_path)[0]
-    inf = open(os.path.join(db_path, fname), "r")
+    inf = open(os.path.join(db_path, fname), "r", encoding="ISO-8859-1")
 
     lines = inf.readlines()
 
@@ -133,3 +136,5 @@ def get_wiki_image(search_term):
 
 def get_wiki_section(topic, n):
     return wikipedia.summary(topic, sentences=n)
+
+match("/Users/williamspear/projects/db-match/dat/db", "/Users/williamspear/projects/db-match/dat/tree", "_", 4)
