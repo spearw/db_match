@@ -101,11 +101,15 @@ def write_file(taxa_list, db_path, output_path):
     outf = open(output_path + "/modified.csv", "w", encoding="utf-8")
 
     fname = os.listdir(db_path)[0]
-    inf = open(os.path.join(db_path, fname), "r", encoding="utf-8")
+    inf = open(os.path.join(db_path, fname), "rb")
 
-    lines = inf.readlines()
+    data = inf.read()
+    data = data.decode()
+    lines = data.splitlines()
 
-    outf.write(lines.pop(0))
+    print(lines)
+
+    outf.write(lines.pop(0) + "\n")
 
     i = 0
     for line in lines:
@@ -117,7 +121,7 @@ def write_file(taxa_list, db_path, output_path):
 
         i += 1
 
-        outf.write(",".join(csv_line))
+        outf.write(",".join(csv_line) + "\n")
 
     outf.close()
     inf.close()
