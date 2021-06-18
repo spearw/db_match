@@ -55,7 +55,7 @@ def read_files(db_path, tree_path):
     trees = []
 
     for filename in os.listdir(db_path):
-        with open(os.path.join(db_path, filename), 'r', encoding="ISO-8859-1") as f: # open in readonly mode
+        with open(os.path.join(db_path, filename), 'r') as f: # open in readonly mode
             db = []
             for line in f:
                 # Get name for every line
@@ -67,7 +67,7 @@ def read_files(db_path, tree_path):
             dbs.append(db)
 
     for filename in os.listdir(tree_path):
-        with open(os.path.join(tree_path, filename), 'r', encoding="ISO-8859-1") as f: # open in readonly mode
+        with open(os.path.join(tree_path, filename), 'r') as f: # open in readonly mode
             fname = os.path.basename(f.name)
             tree = []
             copy = False
@@ -96,10 +96,10 @@ def read_files(db_path, tree_path):
 # Takes the completed taxa_list and writes a new file that includes the new taxa names and the rest of the data from db_path
 #TODO: handle multiple input dbs, perhaps with search
 def write_file(taxa_list, db_path, output_path):
-    outf = open(output_path + "/modified.csv", "w", encoding="ISO-8859-1")
+    outf = open(output_path + "/modified.csv", "w")
 
     fname = os.listdir(db_path)[0]
-    inf = open(os.path.join(db_path, fname), "r", encoding="ISO-8859-1")
+    inf = open(os.path.join(db_path, fname), "r")
 
     lines = inf.readlines()
 
