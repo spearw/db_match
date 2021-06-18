@@ -55,51 +55,53 @@ def read_files(db_path, tree_path):
     trees = []
 
     for filename in os.listdir(db_path):
-        with open(os.path.join(db_path, filename), 'r', encoding="ISO-8859-1") as f: # open in readonly mode
-            db = []
-            for line in f:
-                # Get name for every line
-                name = line.split(",", 1)[0]
-                db.append(name)
-
-            # Remove first line of db (info line)
-            db.pop(0)
-            dbs.append(db)
-
-    for filename in os.listdir(tree_path):
-        with open(os.path.join(tree_path, filename), 'r', encoding="ISO-8859-1") as f: # open in readonly mode
-            fname = os.path.basename(f.name)
-            tree = []
-            copy = False
-            # .nex file read
-            if fname.endswith('.nex'):
-                for line in f:
-                    if line.strip() == "TAXLABELS":
-                        copy = True
-                        continue
-                    elif line.strip() == ";":
-                        break
-                    elif copy:
-                        tree.append(line.strip())
-            # .csv (truth db) file read
-            elif fname.endswith('.csv'):
+        if not filename.startswith('.'):
+            with open(os.path.join(db_path, filename), 'r', encoding="utf-8") as f: # open in readonly mode
+                db = []
                 for line in f:
                     # Get name for every line
                     name = line.split(",", 1)[0]
-                    tree.append(name)
-                # Remove first line of tree (info line)
-                tree.pop(0)
-            trees.append(tree)
+                    db.append(name)
+
+                # Remove first line of db (info line)
+                db.pop(0)
+                dbs.append(db)
+
+    for filename in os.listdir(tree_path):
+        if not filename.startswith('.'):
+            with open(os.path.join(tree_path, filename), 'r', encoding="utf-8") as f: # open in readonly mode
+                fname = os.path.basename(f.name)
+                tree = []
+                copy = False
+                # .nex file read
+                if fname.endswith('.nex'):
+                    for line in f:
+                        if line.strip() == "TAXLABELS":
+                            copy = True
+                            continue
+                        elif line.strip() == ";":
+                            break
+                        elif copy:
+                            tree.append(line.strip())
+                # .csv (truth db) file read
+                elif fname.endswith('.csv'):
+                    for line in f:
+                        # Get name for every line
+                        name = line.split(",", 1)[0]
+                        tree.append(name)
+                    # Remove first line of tree (info line)
+                    tree.pop(0)
+                trees.append(tree)
 
     return dbs, tree
 
 # Takes the completed taxa_list and writes a new file that includes the new taxa names and the rest of the data from db_path
 #TODO: handle multiple input dbs, perhaps with search
 def write_file(taxa_list, db_path, output_path):
-    outf = open(output_path + "/modified.csv", "w")
+    outf = open(output_path + "/modified.csv", "w", encoding="utf-8")
 
     fname = os.listdir(db_path)[0]
-    inf = open(os.path.join(db_path, fname), "r")
+    inf = open(os.path.join(db_path, fname), "r", encoding="utf-8")
 
     lines = inf.readlines()
 
