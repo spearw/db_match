@@ -55,7 +55,7 @@ def read_files(db_path, tree_path):
     trees = []
 
     for filename in os.listdir(db_path):
-        with open(os.path.join(db_path, filename), 'r') as f: # open in readonly mode
+        with open(os.path.join(db_path, filename), 'r', encoding="ISO-8859-1") as f: # open in readonly mode
             db = []
             for line in f:
                 # Get name for every line
@@ -67,7 +67,7 @@ def read_files(db_path, tree_path):
             dbs.append(db)
 
     for filename in os.listdir(tree_path):
-        with open(os.path.join(tree_path, filename), 'r') as f: # open in readonly mode
+        with open(os.path.join(tree_path, filename), 'r', encoding="ISO-8859-1") as f: # open in readonly mode
             fname = os.path.basename(f.name)
             tree = []
             copy = False
