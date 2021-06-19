@@ -120,13 +120,15 @@ class Compare(QMainWindow):
             write_file(self.taxa_list, DB_PATH, OUTPUT_PATH)
             self.close()
 
-    def confirm_suggestion(self, suggestion, taxa_iter, compare_window):
-        print("You chose:", suggestion)
-        self.taxa_list.append(suggestion)
+    def make_confirm_function(self, suggestion, taxa_iter, compare_window):
+        def confirm_suggestion():
+            print("You chose:", suggestion)
+            self.taxa_list.append(suggestion)
 
-        self.line_edit.clear()
+            self.line_edit.clear()
 
-        self.compare_mismatch(taxa_iter, compare_window)
+            self.compare_mismatch(taxa_iter, compare_window)
+        return confirm_suggestion
 
     def show_suggestions(self, next_taxa, taxa_iter, i):
 
@@ -173,11 +175,13 @@ class Compare(QMainWindow):
                     label.show()
                     self.images.addWidget(label)
 
-                    self.btn = QPushButton(suggestion, self)
-                    self.btn.setMaximumWidth(200)
-                    self.btn.adjustSize()
-                    self.btn.clicked.connect(lambda: self.confirm_suggestion(suggestion, taxa_iter, self))
-                    self.suggestions_layout.addWidget(self.btn)
+                    btn = QPushButton(suggestion, self)
+                    btn.setMaximumWidth(200)
+                    btn.adjustSize()
+                    f = self.make_confirm_function(suggestion, taxa_iter, self)
+                    btn.clicked.connect(f)
+                    btn.clicked.connect(lambda s=1: print(s))
+                    self.suggestions_layout.addWidget(btn)
 
         if i == 1:
             self.suggestion_label.setText("Similar Entries")
