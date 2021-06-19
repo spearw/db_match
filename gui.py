@@ -130,6 +130,14 @@ class Compare(QMainWindow):
             self.compare_mismatch(taxa_iter, compare_window)
         return confirm_suggestion
 
+    def confirm_text(self, suggestion, taxa_iter, compare_window):
+        print("You chose:", suggestion)
+        self.taxa_list.append(suggestion)
+
+        self.line_edit.clear()
+
+        self.compare_mismatch(taxa_iter, compare_window)
+
     def show_suggestions(self, next_taxa, taxa_iter, i):
 
         # Clear old buttons + images
@@ -207,8 +215,8 @@ class Compare(QMainWindow):
         try: self.skip_btn.clicked.disconnect()
         except Exception: pass
 
-        # Chooses the original spelling, unmodified
-        self.skip_btn.clicked.connect(lambda: self.confirm_suggestion(self.line_edit.text(), taxa_iter, self))
+        # Chooses the text entry box
+        self.skip_btn.clicked.connect(lambda: self.confirm_text(self.line_edit.text(), taxa_iter, self))
 
 def main():
     app = QApplication(sys.argv)
