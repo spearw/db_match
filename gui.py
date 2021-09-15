@@ -7,6 +7,9 @@ from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMainWindow, QVB
 from PyQt5.QtGui import QImage, QPixmap
 from definitions import DB_PATH, TREE_PATH, OUTPUT_PATH
 from src.python.match import match, write_file, get_wiki_image, get_wiki_section
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
 
 
 class LoadingWindow(QMainWindow):
@@ -69,25 +72,36 @@ class Compare(QMainWindow):
         self.info_layout = QVBoxLayout()
         self.layout.addLayout(self.info_layout, 0, 1)
 
+        self.taxa_layout = QHBoxLayout()
+        self.layout.addLayout(self.taxa_layout, 1, 1)
+
         self.suggestions_layout = QHBoxLayout()
-        self.layout.addLayout(self.suggestions_layout, 1, 1)
+        self.layout.addLayout(self.suggestions_layout, 2, 1)
 
         self.images = QHBoxLayout()
-        self.layout.addLayout(self.images, 2, 1)
+        self.layout.addLayout(self.images, 3, 1)
 
         self.buttons = QHBoxLayout()
-        self.layout.addLayout(self.buttons, 3, 1)
+        self.layout.addLayout(self.buttons, 4, 1)
+
+        self.taxa_label = QLabel("animals_animals")
+        self.taxa_label.setAlignment(Qt.AlignCenter)
+        self.info_layout.addWidget(self.taxa_label, 1)
+
+        self.removed_suggestions = []
+        self.removed_suggestions_label = QLabel()
+        self.removed_suggestions_label.setStyleSheet("QLabel {background-color: red;}")
+
+        self.taxa_info = QLabel("So many options!")
+        self.taxa_info.setAlignment(Qt.AlignCenter)
 
         self.options_count_label = QLabel("So many options!")
         self.options_count_label.setAlignment(Qt.AlignCenter)
         self.info_layout.addWidget(self.options_count_label, 1)
 
-        self.suggestion_label = QLabel("Suggestion!")
-        self.suggestion_label.setAlignment(Qt.AlignCenter)
         # self.suggestion_label.setStyleSheet(
         #     "border-style: solid; border-width: 1px; border-color: black;"
         # )
-        self.info_layout.addWidget(self.suggestion_label, 1)
 
         self.continue_btn = QPushButton("None of these", self)
         self.buttons.addWidget(self.continue_btn, 1)
@@ -99,7 +113,6 @@ class Compare(QMainWindow):
         self.buttons.addWidget(self.skip_btn, 1)
 
         self.taxa_list = []
-        self.removed_suggestions = []
 
 
     def compare_mismatch(self, taxa_iter, compare_window):
@@ -117,7 +130,7 @@ class Compare(QMainWindow):
                 i = 1
                 self.show_suggestions(next_taxa, taxa_iter, i)
 
-                compare_window.setWindowTitle(db_taxa)
+                self.taxa_label.setText(db_taxa)
                 compare_window.setGeometry(100, 100, 600, 400)
                 compare_window.show()
         else:
@@ -144,6 +157,28 @@ class Compare(QMainWindow):
 
         self.compare_mismatch(taxa_iter, compare_window)
 
+    def create_wiki_label(self, search_term):
+        url_image = get_wiki_image(search_term)
+        label = QLabel()
+        label.setScaledContents(True)
+        # Get wiki information, and image if it's available
+        try:
+            if url_image != 0:
+                image = QImage()
+                image.loadFromData(requests.get(url_image).content)
+
+                label.setPixmap(QPixmap(image))
+            description = get_wiki_section(search_term, 2)
+            label.setText(description)
+            label.setMaximumSize(200, 200)
+            label.setWordWrap(True)
+        except:
+            label.setText("Cannot find " + search_term)
+
+        label.setAlignment(Qt.AlignCenter)
+        label.show()
+        return label
+
     def show_suggestions(self, next_taxa, taxa_iter, i):
 
         # Clear old buttons + images
@@ -154,6 +189,11 @@ class Compare(QMainWindow):
 
         print(next_taxa)
         print(f"Removed suggestions: {self.removed_suggestions}")
+
+        self.removed_suggestions_label.setParent(None)
+        if self.removed_suggestions:
+            self.removed_suggestions_label.setText(str(self.removed_suggestions))
+            self.taxa_layout.addWidget(self.removed_suggestions_label, 1)
 
         num_suggestions = [len(next_taxa[1]), len(next_taxa[2]), len(next_taxa[3])]
 
@@ -167,6 +207,11 @@ class Compare(QMainWindow):
                 suggestions = next_taxa[i]
 
             if i <= 3:
+                # reset and load taxa, if possible
+                self.taxa_info.setParent(None)
+                self.taxa_info = self.create_wiki_label(next_taxa[0])
+                self.taxa_layout.insertWidget(0, self.taxa_info, 1)
+
                 for suggestion in suggestions:
                     # Remove suggestions that have already been chosen
                     if suggestion in self.taxa_list:
@@ -179,27 +224,9 @@ class Compare(QMainWindow):
                         continue
 
                     print(suggestion)
-                    url_image = get_wiki_image(suggestion)
 
-                    label = QLabel()
-                    label.setScaledContents(True)
-
-                    # Get wiki information, and image if it's available
-                    try:
-                        if url_image != 0:
-                            image = QImage()
-                            image.loadFromData(requests.get(url_image).content)
-
-                            label.setPixmap(QPixmap(image))
-                        description = get_wiki_section(suggestion, 2)
-                        label.setText(description)
-                        label.setMaximumSize(200, 200)
-                        label.setWordWrap(True)
-                    except:
-                        label.setText("Cannot find " + suggestion)
-
-                    label.show()
-                    self.images.addWidget(label)
+                    # Add info and image widget to page
+                    self.images.addWidget(self.create_wiki_label(suggestion))
 
                     # Add taxa selection button
                     btn = QPushButton(suggestion, self)
@@ -215,16 +242,16 @@ class Compare(QMainWindow):
                     i += 1
                     self.show_suggestions(next_taxa, taxa_iter, i)
 
-            self.options_count_label.setText(f"Similar Entries: {num_suggestions[0]} Same Species: {num_suggestions[1]} Same Genus: {num_suggestions[2]}")
+            self.options_count_label.setText(f"Similar Entries: {num_suggestions[0]} | Same Species: {num_suggestions[1]} | Same Genus: {num_suggestions[2]}")
 
         if i == 1:
-            self.suggestion_label.setText("Similar Entries")
+            self.setWindowTitle("Similar Entries")
         elif i == 2:
-            self.suggestion_label.setText("Same Species")
+            self.setWindowTitle("Same Species")
         elif i == 3:
-            self.suggestion_label.setText("Same Genus")
+            self.setWindowTitle("Same Genus")
         else:
-            self.suggestion_label.setText("No More Suggestions. Type manually and click enter, or leave blank to keep old name.")
+            self.setWindowTitle("No Suggestions")
 
         # Disconnect if already connected
         try: self.continue_btn.clicked.disconnect()
