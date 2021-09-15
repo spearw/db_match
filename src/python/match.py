@@ -45,8 +45,9 @@ def match(db_path, tree_path, db_separator ="_", levenshtein_num = 4):
     return output
 
 
-
-
+def remove_suggestion(suggestion, suggestions):
+    print(f"Removing {suggestion} from future suggestions")
+    print("not yet implemented")
 
 
 def read_files(db_path, tree_path):

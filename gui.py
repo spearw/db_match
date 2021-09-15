@@ -78,6 +78,10 @@ class Compare(QMainWindow):
         self.buttons = QHBoxLayout()
         self.layout.addLayout(self.buttons, 3, 1)
 
+        self.options_count_label = QLabel("So many options!")
+        self.options_count_label.setAlignment(Qt.AlignCenter)
+        self.info_layout.addWidget(self.options_count_label, 1)
+
         self.suggestion_label = QLabel("Suggestion!")
         self.suggestion_label.setAlignment(Qt.AlignCenter)
         # self.suggestion_label.setStyleSheet(
@@ -95,6 +99,7 @@ class Compare(QMainWindow):
         self.buttons.addWidget(self.skip_btn, 1)
 
         self.taxa_list = []
+        self.removed_suggestions = []
 
 
     def compare_mismatch(self, taxa_iter, compare_window):
@@ -126,6 +131,7 @@ class Compare(QMainWindow):
             self.taxa_list.append(suggestion)
 
             self.line_edit.clear()
+            self.removed_suggestions.clear()
 
             self.compare_mismatch(taxa_iter, compare_window)
         return confirm_suggestion
@@ -147,6 +153,10 @@ class Compare(QMainWindow):
             self.images.itemAt(k).widget().setParent(None)
 
         print(next_taxa)
+        print(f"Removed suggestions: {self.removed_suggestions}")
+
+        num_suggestions = [len(next_taxa[1]), len(next_taxa[2]), len(next_taxa[3])]
+
 
         if i <= 3:
             suggestions = next_taxa[i]
@@ -158,6 +168,15 @@ class Compare(QMainWindow):
 
             if i <= 3:
                 for suggestion in suggestions:
+                    # Remove suggestions that have already been chosen
+                    if suggestion in self.taxa_list:
+
+                        # TODO: add a window with removed suggestions so can be seen for this taxa
+                        self.removed_suggestions.append(suggestion)
+                        print(f"{suggestion} previously selected.")
+                        suggestions.remove(suggestion)
+                        num_suggestions[i-1] = num_suggestions[i-1] - 1
+                        continue
 
                     print(suggestion)
                     url_image = get_wiki_image(suggestion)
@@ -165,24 +184,24 @@ class Compare(QMainWindow):
                     label = QLabel()
                     label.setScaledContents(True)
 
+                    # Get wiki information, and image if it's available
                     try:
                         if url_image != 0:
                             image = QImage()
                             image.loadFromData(requests.get(url_image).content)
-                            label.setMaximumSize(200, 200)
 
                             label.setPixmap(QPixmap(image))
-                        else:
-                            description = get_wiki_section(suggestion, 2)
-                            label.setText(description)
-                            label.setMaximumWidth(200)
-                            label.setWordWrap(True)
+                        description = get_wiki_section(suggestion, 2)
+                        label.setText(description)
+                        label.setMaximumSize(200, 200)
+                        label.setWordWrap(True)
                     except:
                         label.setText("Cannot find " + suggestion)
 
                     label.show()
                     self.images.addWidget(label)
 
+                    # Add taxa selection button
                     btn = QPushButton(suggestion, self)
                     btn.setMaximumWidth(200)
                     btn.adjustSize()
@@ -190,6 +209,13 @@ class Compare(QMainWindow):
                     btn.clicked.connect(f)
                     btn.clicked.connect(lambda s=1: print(s))
                     self.suggestions_layout.addWidget(btn)
+
+                # Check that all suggestions were not removed by being previously picked, continue if they were
+                if not suggestions:
+                    i += 1
+                    self.show_suggestions(next_taxa, taxa_iter, i)
+
+            self.options_count_label.setText(f"Similar Entries: {num_suggestions[0]} Same Species: {num_suggestions[1]} Same Genus: {num_suggestions[2]}")
 
         if i == 1:
             self.suggestion_label.setText("Similar Entries")
