@@ -3,6 +3,7 @@ import re
 import wikipedia
 import requests
 import json
+from definitions import INFO_PATH
 from Levenshtein import distance as levenshtein_distance
 
 def match(db_path, tree_path, db_separator ="_", levenshtein_num = 4):
@@ -126,16 +127,71 @@ def write_file(taxa_list, db_path, output_path):
 def get_wiki_image(search_term):
     WIKI_REQUEST = 'http://en.wikipedia.org/w/api.php?action=query&prop=pageimages&format=json&piprop=original&titles='
     try:
-        result = wikipedia.search(search_term, results = 1)
+        result = wikipedia.search(search_term, results=1)
         wikipedia.set_lang('en')
-        wkpage = wikipedia.WikipediaPage(title = result[0])
-        title = wkpage.title
-        response  = requests.get(WIKI_REQUEST+title)
+        wikipage = wikipedia.WikipediaPage(title=result[0])
+        title = wikipage.title
+        response = requests.get(WIKI_REQUEST+title)
         json_data = json.loads(response.text)
         img_link = list(json_data['query']['pages'].values())[0]['original']['source']
         return img_link
     except:
         return 0
 
-def get_wiki_section(topic, n):
+def get_wiki_section(topic, n=2):
     return wikipedia.summary(topic, sentences=n)
+
+# Takes list and returns wiki first paragraph for each entry
+def get_wiki_info(list):
+    wiki_entries = {}
+    for species in list:
+        try:
+            wiki_entries[species] = get_wiki_section(species)
+        except:
+            wiki_entries[species] = "No info"
+    return wiki_entries
+
+def write_wiki_file(new_data, path, fname):
+    try:
+        with open(f"{path}/{fname}", "r") as f:
+            current_data = json.load(f)
+            full_data = current_data | new_data
+        with open(f"{path}/{fname}", "w") as f:
+            json.dump(full_data, f, indent=6, sort_keys=True)
+    except:
+        with open(f"{path}/{fname}", "w") as f:
+            json.dump(new_data, f, indent=6, sort_keys=True)
+
+def read_wiki_file(path, fname):
+    try:
+        with open(f"{path}/{fname}", 'r') as f:
+            dict =json.load(f)
+        return dict
+    except:
+        return {}
+
+# checks information in info and ensures it has entries for every possible match
+# returns list of all missing species. Empty list is fully complete.
+def validate_info(info, suggestions):
+    missing_info = []
+    for suggestion in suggestions:
+        # match found
+        if type(suggestion) is str:
+            continue
+        for sub_suggestion in suggestion:
+            # list of suggestions
+            if type(sub_suggestion) is list:
+                for sub_sub_suggestion in sub_suggestion:
+                    if sub_sub_suggestion not in info:
+                        missing_info.append(sub_sub_suggestion)
+            elif sub_suggestion not in info:
+                missing_info.append(sub_suggestion)
+    # return set to weed out duplicates
+    return set(missing_info)
+
+if __name__ == '__main__':
+    info = read_wiki_file("dat/info", "info.json")
+    suggestions = match("dat/db", "dat/tree")
+    missing_info = validate_info(info, suggestions)
+    wiki_info = get_wiki_info(missing_info)
+    write_wiki_file(wiki_info, "dat/info", "info.json")

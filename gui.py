@@ -5,8 +5,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMainWindow, QVBoxLayout, \
     QHBoxLayout, QGridLayout, QLabel, QLineEdit
 from PyQt5.QtGui import QImage, QPixmap
-from definitions import DB_PATH, TREE_PATH, OUTPUT_PATH
-from src.python.match import match, write_file, get_wiki_image, get_wiki_section
+from definitions import *
+from src.python.match import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -40,12 +40,17 @@ class MainMenu(QMainWindow):
         compare_window = Compare(self)
         self.dialogs.append(compare_window)
 
+        info = read_wiki_file(INFO_PATH, INFO_FNAME)
         taxa_list = match(DB_PATH, TREE_PATH, "_", 4)
+        missing_info = validate_info(info, taxa_list)
+        wiki_info = get_wiki_info(missing_info)
+        # Skip file writing if no info is added
+        if wiki_info:
+            write_wiki_file(wiki_info, INFO_PATH, INFO_FNAME)
+
         compare_window.__init__(self)
 
         compare_window.compare_mismatch(iter(taxa_list), compare_window)
-
-
 
 # dialog.close()
 
@@ -113,6 +118,7 @@ class Compare(QMainWindow):
         self.buttons.addWidget(self.skip_btn, 1)
 
         self.taxa_list = []
+        self.suggestions_info = read_wiki_file(INFO_PATH, INFO_FNAME)
 
 
     def compare_mismatch(self, taxa_iter, compare_window):
@@ -158,23 +164,26 @@ class Compare(QMainWindow):
         self.compare_mismatch(taxa_iter, compare_window)
 
     def create_wiki_label(self, search_term):
-        url_image = get_wiki_image(search_term)
+        #TODO: reimplement images?
+
+        # url_image = get_wiki_image(search_term)
+        # Get wiki information, and image if it's available
+        # try:
+        #     if url_image != 0:
+        #         image = QImage()
+        #         image.loadFromData(requests.get(url_image).content)
+        #
+        #         label.setPixmap(QPixmap(image))
+        # except:
+        #     label.setText("Cannot find " + search_term)
+
         label = QLabel()
         label.setScaledContents(True)
-        # Get wiki information, and image if it's available
-        try:
-            if url_image != 0:
-                image = QImage()
-                image.loadFromData(requests.get(url_image).content)
 
-                label.setPixmap(QPixmap(image))
-            description = get_wiki_section(search_term, 2)
-            label.setText(description)
-            label.setMaximumSize(200, 200)
-            label.setWordWrap(True)
-        except:
-            label.setText("Cannot find " + search_term)
-
+        description = self.suggestions_info[search_term]
+        label.setText(description)
+        label.setMaximumSize(200, 200)
+        label.setWordWrap(True)
         label.setAlignment(Qt.AlignCenter)
         label.show()
         return label
