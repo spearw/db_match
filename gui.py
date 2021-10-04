@@ -50,7 +50,9 @@ class MainMenu(QMainWindow):
 
         compare_window.__init__(self)
 
+        compare_window.setParent(self)
         compare_window.compare_mismatch(iter(taxa_list), compare_window)
+        self.hide()
 
 # dialog.close()
 
@@ -100,9 +102,16 @@ class Compare(QMainWindow):
         self.taxa_info = QLabel("So many options!")
         self.taxa_info.setAlignment(Qt.AlignCenter)
 
-        self.options_count_label = QLabel("So many options!")
+        self.options_count_label = QHBoxLayout()
         self.options_count_label.setAlignment(Qt.AlignCenter)
-        self.info_layout.addWidget(self.options_count_label, 1)
+        self.info_layout.addLayout(self.options_count_label, 1)
+
+        self.similar_entries_count = QPushButton()
+        self.options_count_label.addWidget(self.similar_entries_count)
+        self.same_species_count = QPushButton()
+        self.options_count_label.addWidget(self.same_species_count)
+        self.same_genus_count = QPushButton()
+        self.options_count_label.addWidget(self.same_genus_count)
 
         # self.suggestion_label.setStyleSheet(
         #     "border-style: solid; border-width: 1px; border-color: black;"
@@ -130,7 +139,6 @@ class Compare(QMainWindow):
                 self.taxa_list.append(next_taxa)
                 self.compare_mismatch(taxa_iter, compare_window)
             else:
-
                 db_taxa = next_taxa[0]
 
                 i = 1
@@ -142,6 +150,8 @@ class Compare(QMainWindow):
         else:
             # End of file, record results
             write_file(self.taxa_list, DB_PATH, OUTPUT_PATH)
+            # Open main menu
+            self.parent().show()
             self.close()
 
     def make_confirm_function(self, suggestion, taxa_iter, compare_window):
@@ -156,6 +166,10 @@ class Compare(QMainWindow):
         return confirm_suggestion
 
     def confirm_text(self, suggestion, taxa_iter, compare_window):
+        # TODO: close window more intelligently
+        if not suggestion:
+            print('hi')
+
         print("You chose:", suggestion)
         self.taxa_list.append(suggestion)
 
@@ -251,7 +265,24 @@ class Compare(QMainWindow):
                     i += 1
                     self.show_suggestions(next_taxa, taxa_iter, i)
 
-            self.options_count_label.setText(f"Similar Entries: {num_suggestions[0]} | Same Species: {num_suggestions[1]} | Same Genus: {num_suggestions[2]}")
+            # TODO: get this logic outside of the suggestions, so it's not doing it every time
+            # Set button text
+            self.similar_entries_count.setText(f"Similar Entries: {num_suggestions[0]}")
+            self.same_species_count.setText(f"Same Species: {num_suggestions[1]}")
+            self.same_genus_count.setText(f"Same Genus: {num_suggestions[2]}")
+
+            # Unlink buttons, if needed
+            try: self.similar_entries_count.clicked.disconnect()
+            except Exception: pass
+            try: self.same_species_count.clicked.disconnect()
+            except Exception: pass
+            try: self.same_genus_count.clicked.disconnect()
+            except Exception: pass
+
+            # Link buttons
+            self.similar_entries_count.clicked.connect(lambda: self.show_suggestions(next_taxa, taxa_iter, 1))
+            self.same_species_count.clicked.connect(lambda: self.show_suggestions(next_taxa, taxa_iter, 2))
+            self.same_genus_count.clicked.connect(lambda: self.show_suggestions(next_taxa, taxa_iter, 3))
 
         if i == 1:
             self.setWindowTitle("Similar Entries")
