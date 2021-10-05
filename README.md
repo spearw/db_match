@@ -12,5 +12,7 @@ V0.03:
 * Species info is now downloaded upfront and stored in a local datafile to avoid long waits between selections
 
 V0.04:
-* Main Menu now disappears when you're matching, and reappears after
+* Main Menu now disappears when matching and reappears after
 * Add clicking on different suggestion types to jump to them
+* Species info now scrollable
+* General UI improvements

@@ -17,8 +17,9 @@ class LoadingWindow(QMainWindow):
         super(LoadingWindow, self).__init__(parent)
         self.setWindowTitle("Loading, please wait...")
 
+
 class MainMenu(QMainWindow):
-    #TODO: allow for setting of DB_PATH, TREE_PATH, and OUTPUT_PATH before run
+    # TODO: allow for setting of DB_PATH, TREE_PATH, and OUTPUT_PATH before run
     def __init__(self, parent=None):
         super(MainMenu, self).__init__(parent)
         self.pushButton = QPushButton("Run")
@@ -36,7 +37,6 @@ class MainMenu(QMainWindow):
         self.run_match()
 
     def run_match(self):
-
         compare_window = Compare(self)
         self.dialogs.append(compare_window)
 
@@ -54,16 +54,17 @@ class MainMenu(QMainWindow):
         compare_window.compare_mismatch(iter(taxa_list), compare_window)
         self.hide()
 
+
 # dialog.close()
 
-        # print("Starting Match...")
-        #
-        # start_time = time.time()
-        # taxa_list = db_match(DB_PATH, TREE_PATH, "_", 4)
-        # print("--- %s seconds ---" % (time.time() - start_time))
-        #
-        # compare = Compare(self)
-        # compare.compare_mismatch(self, iter(taxa_list))
+# print("Starting Match...")
+#
+# start_time = time.time()
+# taxa_list = db_match(DB_PATH, TREE_PATH, "_", 4)
+# print("--- %s seconds ---" % (time.time() - start_time))
+#
+# compare = Compare(self)
+# compare.compare_mismatch(self, iter(taxa_list))
 
 
 class Compare(QMainWindow):
@@ -129,7 +130,6 @@ class Compare(QMainWindow):
         self.taxa_list = []
         self.suggestions_info = read_wiki_file(INFO_PATH, INFO_FNAME)
 
-
     def compare_mismatch(self, taxa_iter, compare_window):
 
         next_taxa = next(taxa_iter, None)
@@ -142,6 +142,9 @@ class Compare(QMainWindow):
                 db_taxa = next_taxa[0]
 
                 i = 1
+
+                next_taxa = self.remove_chosen_entries(next_taxa)
+
                 self.show_suggestions(next_taxa, taxa_iter, i)
 
                 self.taxa_label.setText(db_taxa)
@@ -163,7 +166,26 @@ class Compare(QMainWindow):
             self.removed_suggestions.clear()
 
             self.compare_mismatch(taxa_iter, compare_window)
+
         return confirm_suggestion
+
+    def remove_chosen_entries(self, taxa):
+
+        print(f"NEXT TAXA: {taxa}")
+        taxa_name = taxa[0]
+
+        for taxa_suggestions in taxa:
+            print(f"TAXA_SUGGESTIONS: {taxa_suggestions}")
+            if type(taxa_suggestions) != str:
+                for suggestion in taxa_suggestions:
+                    # Remove suggestions that have already been chosen
+                    # TODO: do this for entire suggestions list at beginning of new taxa to avoid changing once clicking
+                    if suggestion in self.taxa_list:
+                        self.removed_suggestions.append(suggestion)
+                        print(f"{suggestion} previously selected.")
+                        taxa_suggestions.remove(suggestion)
+                        continue
+        return taxa
 
     def confirm_text(self, suggestion, taxa_iter, compare_window):
         # TODO: close window more intelligently
@@ -177,10 +199,30 @@ class Compare(QMainWindow):
 
         self.compare_mismatch(taxa_iter, compare_window)
 
-    def create_wiki_label(self, search_term):
-        #TODO: reimplement images?
+    def create_wiki_label(self, taxa):
+        # Create text box from wiki
+        label = QLabel()
+        label.setScaledContents(True)
+        label.setText(self.suggestions_info[taxa])
+        label.setMaximumSize(200, 200)
+        label.setMargin(5)
+        label.setWordWrap(True)
+        label.setAlignment(Qt.AlignCenter)
+        label.show()
 
-        # url_image = get_wiki_image(search_term)
+        # Create scroll area for text box
+        scroll = QScrollArea()
+        scroll.setWidget(label)
+        scroll.setWidgetResizable(True)
+        scroll.setAlignment(Qt.AlignCenter)
+        scroll.setFixedHeight(200)
+
+        return scroll
+
+    def create_wiki_layout(self, taxa, taxa_iter):
+        # TODO: reimplement images?
+
+        # url_image = get_wiki_image(taxa)
         # Get wiki information, and image if it's available
         # try:
         #     if url_image != 0:
@@ -189,29 +231,36 @@ class Compare(QMainWindow):
         #
         #         label.setPixmap(QPixmap(image))
         # except:
-        #     label.setText("Cannot find " + search_term)
+        #     label.setText("Cannot find " + taxa)
 
-        label = QLabel()
-        label.setScaledContents(True)
+        # Create base layout for taxa selection
+        taxa_layout = QVBoxLayout()
+        taxa_layout.setAlignment(Qt.AlignCenter)
 
-        description = self.suggestions_info[search_term]
-        label.setText(description)
-        label.setMaximumSize(200, 200)
-        label.setWordWrap(True)
-        label.setAlignment(Qt.AlignCenter)
-        label.show()
-        return label
+        # Create taxa selection button
+        btn = QPushButton(taxa, self)
+        btn.setStyleSheet("padding: 20px;")
+        # btn.adjustSize()
+        f = self.make_confirm_function(taxa, taxa_iter, self)
+        btn.clicked.connect(f)
+        btn.clicked.connect(lambda s=1: print(s))
+        taxa_layout.addWidget(btn)
+
+        scroll = self.create_wiki_label(taxa)
+        taxa_layout.addWidget(scroll)
+
+        return taxa_layout
 
     def show_suggestions(self, next_taxa, taxa_iter, i):
 
         # Clear old buttons + images
         for j in reversed(range(self.suggestions_layout.count())):
-            self.suggestions_layout.itemAt(j).widget().setParent(None)
-        for k in reversed(range(self.images.count())):
-            self.images.itemAt(k).widget().setParent(None)
+            layout = self.suggestions_layout.itemAt(j).layout()
+            for k in reversed(range(layout.count())):
+                layout.itemAt(k).widget().setParent(None)
 
-        print(next_taxa)
-        print(f"Removed suggestions: {self.removed_suggestions}")
+        print(f"show_suggestions - next_taxa: {next_taxa}")
+        print(f"Removed category_suggestions: {self.removed_suggestions}")
 
         self.removed_suggestions_label.setParent(None)
         if self.removed_suggestions:
@@ -220,14 +269,13 @@ class Compare(QMainWindow):
 
         num_suggestions = [len(next_taxa[1]), len(next_taxa[2]), len(next_taxa[3])]
 
-
         if i <= 3:
-            suggestions = next_taxa[i]
-            while not suggestions:
+            category_suggestions = next_taxa[i]
+            while not category_suggestions:
                 i += 1
                 if i > 3:
                     break
-                suggestions = next_taxa[i]
+                category_suggestions = next_taxa[i]
 
             if i <= 3:
                 # reset and load taxa, if possible
@@ -235,54 +283,46 @@ class Compare(QMainWindow):
                 self.taxa_info = self.create_wiki_label(next_taxa[0])
                 self.taxa_layout.insertWidget(0, self.taxa_info, 1)
 
-                for suggestion in suggestions:
-                    # Remove suggestions that have already been chosen
-                    if suggestion in self.taxa_list:
-
-                        # TODO: add a window with removed suggestions so can be seen for this taxa
-                        self.removed_suggestions.append(suggestion)
-                        print(f"{suggestion} previously selected.")
-                        suggestions.remove(suggestion)
-                        num_suggestions[i-1] = num_suggestions[i-1] - 1
-                        continue
+                for suggestion in category_suggestions:
 
                     print(suggestion)
 
                     # Add info and image widget to page
-                    self.images.addWidget(self.create_wiki_label(suggestion))
+                    suggestion_layout = self.create_wiki_layout(suggestion, taxa_iter)
+                    self.suggestions_layout.addLayout(suggestion_layout)
 
-                    # Add taxa selection button
-                    btn = QPushButton(suggestion, self)
-                    btn.setMaximumWidth(200)
-                    btn.adjustSize()
-                    f = self.make_confirm_function(suggestion, taxa_iter, self)
-                    btn.clicked.connect(f)
-                    btn.clicked.connect(lambda s=1: print(s))
-                    self.suggestions_layout.addWidget(btn)
-
-                # Check that all suggestions were not removed by being previously picked, continue if they were
-                if not suggestions:
+                # Check that all category_suggestions were not removed by being previously picked, continue if they were
+                if not category_suggestions:
                     i += 1
                     self.show_suggestions(next_taxa, taxa_iter, i)
 
-            # TODO: get this logic outside of the suggestions, so it's not doing it every time
+            # TODO: get this logic outside of the category_suggestions, so it's not doing it every time
             # Set button text
             self.similar_entries_count.setText(f"Similar Entries: {num_suggestions[0]}")
             self.same_species_count.setText(f"Same Species: {num_suggestions[1]}")
             self.same_genus_count.setText(f"Same Genus: {num_suggestions[2]}")
 
             # Unlink buttons, if needed
-            try: self.similar_entries_count.clicked.disconnect()
-            except Exception: pass
-            try: self.same_species_count.clicked.disconnect()
-            except Exception: pass
-            try: self.same_genus_count.clicked.disconnect()
-            except Exception: pass
+            try:
+                self.similar_entries_count.clicked.disconnect()
+            except Exception:
+                pass
+            try:
+                self.same_species_count.clicked.disconnect()
+            except Exception:
+                pass
+            try:
+                self.same_genus_count.clicked.disconnect()
+            except Exception:
+                pass
 
-            # Link buttons
-            self.similar_entries_count.clicked.connect(lambda: self.show_suggestions(next_taxa, taxa_iter, 1))
-            self.same_species_count.clicked.connect(lambda: self.show_suggestions(next_taxa, taxa_iter, 2))
-            self.same_genus_count.clicked.connect(lambda: self.show_suggestions(next_taxa, taxa_iter, 3))
+            # Link buttons, if category_suggestions exist for those categories
+            if num_suggestions[0] > 0: self.similar_entries_count.clicked.connect(
+                lambda: self.show_suggestions(next_taxa, taxa_iter, 1))
+            if num_suggestions[1] > 0: self.same_species_count.clicked.connect(
+                lambda: self.show_suggestions(next_taxa, taxa_iter, 2))
+            if num_suggestions[2] > 0: self.same_genus_count.clicked.connect(
+                lambda: self.show_suggestions(next_taxa, taxa_iter, 3))
 
         if i == 1:
             self.setWindowTitle("Similar Entries")
@@ -294,22 +334,27 @@ class Compare(QMainWindow):
             self.setWindowTitle("No Suggestions")
 
         # Disconnect if already connected
-        try: self.continue_btn.clicked.disconnect()
-        except Exception: pass
+        try:
+            self.continue_btn.clicked.disconnect()
+        except Exception:
+            pass
 
         if i <= 3:
             self.continue_btn.setText("None of these")
-            self.continue_btn.clicked.connect(lambda: self.show_suggestions(next_taxa, taxa_iter, i+1))
+            self.continue_btn.clicked.connect(lambda: self.show_suggestions(next_taxa, taxa_iter, i + 1))
         else:
             self.continue_btn.setText("Back")
             self.continue_btn.clicked.connect(lambda: self.show_suggestions(next_taxa, taxa_iter, 1))
 
         # Disconnect if already connected
-        try: self.skip_btn.clicked.disconnect()
-        except Exception: pass
+        try:
+            self.skip_btn.clicked.disconnect()
+        except Exception:
+            pass
 
         # Chooses the text entry box
         self.skip_btn.clicked.connect(lambda: self.confirm_text(self.line_edit.text(), taxa_iter, self))
+
 
 def main():
     app = QApplication(sys.argv)
@@ -317,8 +362,6 @@ def main():
     main.show()
     sys.exit(app.exec_())
 
+
 if __name__ == '__main__':
     main()
-
-
-
