@@ -72,61 +72,70 @@ class Compare(QMainWindow):
         super(Compare, self).__init__(parent)
         self.setWindowTitle("compare")
 
+        # Create main_layout
         self.main_widget = QWidget()
         self.main_widget.setFocus()
         self.setCentralWidget(self.main_widget)
-        self.layout = QGridLayout(self.main_widget)
+        self.main_layout = QGridLayout(self.main_widget)
 
+        # Create sub-layouts for main_layout and order them
         self.info_layout = QVBoxLayout()
-        self.layout.addLayout(self.info_layout, 0, 1)
+        self.main_layout.addLayout(self.info_layout, 0, 0)
 
-        self.taxa_layout = QHBoxLayout()
-        self.layout.addLayout(self.taxa_layout, 1, 1)
+        self.taxa_layout = QVBoxLayout()
+        self.taxa_layout.setAlignment(Qt.AlignCenter)
+        self.main_layout.addLayout(self.taxa_layout, 1, 0)
+
+        self.count_layout = QHBoxLayout()
+        self.main_layout.addLayout(self.count_layout, 0, 1)
 
         self.suggestions_layout = QHBoxLayout()
-        self.layout.addLayout(self.suggestions_layout, 2, 1)
+        self.main_layout.addLayout(self.suggestions_layout, 1, 1)
 
-        self.images = QHBoxLayout()
-        self.layout.addLayout(self.images, 3, 1)
+        self.manual_entry_layout = QVBoxLayout()
+        self.main_layout.addLayout(self.manual_entry_layout, 2, 0, 1, 2)
 
-        self.buttons = QHBoxLayout()
-        self.layout.addLayout(self.buttons, 4, 1)
-
+        # Add contents to info_layout
         self.taxa_label = QLabel("animals_animals")
         self.taxa_label.setAlignment(Qt.AlignCenter)
+        self.taxa_label.setStyleSheet("padding: 20px; border-radius: 0px; background-color: lightgray; color: black;")
         self.info_layout.addWidget(self.taxa_label, 1)
 
-        self.removed_suggestions = []
+        # Add contents to taxa_layout
         self.removed_suggestions_label = QLabel()
-        self.removed_suggestions_label.setStyleSheet("QLabel {background-color: red;}")
+        self.removed_suggestions_label.setAlignment(Qt.AlignCenter)
+        self.removed_suggestions_label.setContentsMargins(5, 5, 5, 5)
+        self.removed_suggestions_count = QLabel()
+        self.removed_suggestions_count.setAlignment(Qt.AlignCenter)
+        self.taxa_layout.addWidget(self.removed_suggestions_count, 1)
 
-        self.taxa_info = QLabel("So many options!")
-        self.taxa_info.setAlignment(Qt.AlignCenter)
-
+        # Add contents to count_layout
         self.options_count_label = QHBoxLayout()
         self.options_count_label.setAlignment(Qt.AlignCenter)
-        self.info_layout.addLayout(self.options_count_label, 1)
-
         self.similar_entries_count = QPushButton()
         self.options_count_label.addWidget(self.similar_entries_count)
         self.same_species_count = QPushButton()
         self.options_count_label.addWidget(self.same_species_count)
         self.same_genus_count = QPushButton()
         self.options_count_label.addWidget(self.same_genus_count)
+        self.count_layout.addLayout(self.options_count_label, 1)
 
-        # self.suggestion_label.setStyleSheet(
-        #     "border-style: solid; border-width: 1px; border-color: black;"
-        # )
+        # Create label for main taxa info, to be attached as needed
+        self.taxa_info = QLabel("So many options!")
+        self.taxa_info.setAlignment(Qt.AlignCenter)
 
-        self.continue_btn = QPushButton("None of these", self)
-        self.buttons.addWidget(self.continue_btn, 1)
-
+        # Add contents to manual_entry_layout
+        self.entry_label = QLabel("Manual Entry:")
+        self.manual_entry_layout.addWidget(self.entry_label)
         self.line_edit = QLineEdit()
-        self.buttons.addWidget(self.line_edit, 1)
+        self.manual_entry_layout.addWidget(self.line_edit)
+        self.manual_btn = QPushButton("Enter", self)
+        self.manual_btn.setMaximumWidth(150)
+        self.manual_entry_layout.addWidget(self.manual_btn)
+        self.manual_entry_layout.setContentsMargins(150, 10, 150, 10)
 
-        self.skip_btn = QPushButton("Enter", self)
-        self.buttons.addWidget(self.skip_btn, 1)
-
+        # Init global variables
+        self.removed_suggestions = []
         self.taxa_list = []
         self.suggestions_info = read_wiki_file(INFO_PATH, INFO_FNAME)
 
@@ -205,7 +214,6 @@ class Compare(QMainWindow):
         label.setScaledContents(True)
         label.setText(self.suggestions_info[taxa])
         label.setMaximumSize(200, 200)
-        label.setMargin(5)
         label.setWordWrap(True)
         label.setAlignment(Qt.AlignCenter)
         label.show()
@@ -216,11 +224,12 @@ class Compare(QMainWindow):
         scroll.setWidgetResizable(True)
         scroll.setAlignment(Qt.AlignCenter)
         scroll.setFixedHeight(200)
+        scroll.setMaximumWidth(200)
 
         return scroll
 
     def create_wiki_layout(self, taxa, taxa_iter):
-        # TODO: reimplement images?
+        # TODO: reimplement count_layout?
 
         # url_image = get_wiki_image(taxa)
         # Get wiki information, and image if it's available
@@ -233,13 +242,13 @@ class Compare(QMainWindow):
         # except:
         #     label.setText("Cannot find " + taxa)
 
-        # Create base layout for taxa selection
+        # Create base main_layout for taxa selection
         taxa_layout = QVBoxLayout()
         taxa_layout.setAlignment(Qt.AlignCenter)
 
         # Create taxa selection button
         btn = QPushButton(taxa, self)
-        btn.setStyleSheet("padding: 20px;")
+        btn.setStyleSheet("padding: 20px; border-radius: 15px; background-color: gray;")
         # btn.adjustSize()
         f = self.make_confirm_function(taxa, taxa_iter, self)
         btn.clicked.connect(f)
@@ -248,14 +257,16 @@ class Compare(QMainWindow):
 
         scroll = self.create_wiki_label(taxa)
         taxa_layout.addWidget(scroll)
+        taxa_layout.setContentsMargins(10, 5, 10, 5)
 
         return taxa_layout
 
     def show_suggestions(self, next_taxa, taxa_iter, i):
 
-        # Clear old buttons + images
+        # Clear old buttons + count_layout
         for j in reversed(range(self.suggestions_layout.count())):
             layout = self.suggestions_layout.itemAt(j).layout()
+            self.suggestions_layout.removeItem(layout)
             for k in reversed(range(layout.count())):
                 layout.itemAt(k).widget().setParent(None)
 
@@ -263,8 +274,9 @@ class Compare(QMainWindow):
         print(f"Removed category_suggestions: {self.removed_suggestions}")
 
         self.removed_suggestions_label.setParent(None)
+        self.removed_suggestions_count.setText(f"Removed Suggestions: {len(self.removed_suggestions)}")
         if self.removed_suggestions:
-            self.removed_suggestions_label.setText(str(self.removed_suggestions))
+            self.removed_suggestions_label.setText(", ".join(self.removed_suggestions))
             self.taxa_layout.addWidget(self.removed_suggestions_label, 1)
 
         num_suggestions = [len(next_taxa[1]), len(next_taxa[2]), len(next_taxa[3])]
@@ -281,7 +293,9 @@ class Compare(QMainWindow):
                 # reset and load taxa, if possible
                 self.taxa_info.setParent(None)
                 self.taxa_info = self.create_wiki_label(next_taxa[0])
-                self.taxa_layout.insertWidget(0, self.taxa_info, 1)
+                h_layout = QHBoxLayout()
+                h_layout.addWidget(self.taxa_info)
+                self.taxa_layout.insertLayout(0, h_layout)
 
                 for suggestion in category_suggestions:
 
@@ -335,25 +349,12 @@ class Compare(QMainWindow):
 
         # Disconnect if already connected
         try:
-            self.continue_btn.clicked.disconnect()
-        except Exception:
-            pass
-
-        if i <= 3:
-            self.continue_btn.setText("None of these")
-            self.continue_btn.clicked.connect(lambda: self.show_suggestions(next_taxa, taxa_iter, i + 1))
-        else:
-            self.continue_btn.setText("Back")
-            self.continue_btn.clicked.connect(lambda: self.show_suggestions(next_taxa, taxa_iter, 1))
-
-        # Disconnect if already connected
-        try:
-            self.skip_btn.clicked.disconnect()
+            self.manual_btn.clicked.disconnect()
         except Exception:
             pass
 
         # Chooses the text entry box
-        self.skip_btn.clicked.connect(lambda: self.confirm_text(self.line_edit.text(), taxa_iter, self))
+        self.manual_btn.clicked.connect(lambda: self.confirm_text(self.line_edit.text(), taxa_iter, self))
 
 
 def main():
