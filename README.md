@@ -16,3 +16,4 @@ V0.04:
 * Add clicking on different suggestion types to jump to them
 * Species info now scrollable
 * General UI improvements
+* Add main menu
