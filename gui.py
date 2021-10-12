@@ -148,8 +148,12 @@ class Compare(QMainWindow):
         self.main_layout = QGridLayout(self.main_widget)
 
         # Create sub-layouts for main_layout and order them
+        self.info_layout_style = QWidget()
+        self.info_layout_style.setStyleSheet("border-width: 1px; border-style: solid; border-color: black white black black;")
+        self.main_layout.addWidget(self.info_layout_style, 0, 0, 3, 1)
+
         self.info_layout = QVBoxLayout()
-        self.main_layout.addLayout(self.info_layout, 0, 0)
+        self.main_layout.addLayout(self.info_layout, 0, 0,)
 
         self.taxa_layout = QVBoxLayout()
         self.taxa_layout.setAlignment(Qt.AlignCenter)
@@ -162,12 +166,12 @@ class Compare(QMainWindow):
         self.main_layout.addLayout(self.suggestions_layout, 1, 1)
 
         self.manual_entry_layout = QVBoxLayout()
-        self.main_layout.addLayout(self.manual_entry_layout, 2, 0, 1, 2)
+        self.main_layout.addLayout(self.manual_entry_layout, 2, 1, 1, 2)
 
         # Add contents to info_layout
         self.taxa_label = QLabel("animals_animals")
         self.taxa_label.setAlignment(Qt.AlignCenter)
-        self.taxa_label.setStyleSheet("padding: 20px; border-radius: 0px; background-color: lightgray; color: black;")
+        self.taxa_label.setStyleSheet("padding: 30px; border-radius: 0px; background-color: lightgray; color: black;")
         self.info_layout.addWidget(self.taxa_label, 1)
 
         # Add contents to taxa_layout
@@ -201,7 +205,7 @@ class Compare(QMainWindow):
         self.manual_btn = QPushButton("Enter", self)
         self.manual_btn.setMaximumWidth(150)
         self.manual_entry_layout.addWidget(self.manual_btn)
-        self.manual_entry_layout.setContentsMargins(150, 10, 150, 10)
+        self.manual_entry_layout.setContentsMargins(10, 10, 10, 10)
 
         # Init global variables
         self.removed_suggestions = []
@@ -268,7 +272,7 @@ class Compare(QMainWindow):
     def confirm_text(self, suggestion, taxa_iter, compare_window):
         # TODO: close window more intelligently
         if not suggestion:
-            print('hi')
+            print('No more suggestions')
 
         print("You chose:", suggestion)
         self.taxa_list.append(suggestion)
@@ -281,8 +285,8 @@ class Compare(QMainWindow):
         # Create text box from wiki
         label = QLabel()
         label.setScaledContents(True)
+        print(f'wiki_info: {self.suggestions_info[taxa]}')
         label.setText(self.suggestions_info[taxa])
-        label.setMaximumSize(200, 200)
         label.setWordWrap(True)
         label.setAlignment(Qt.AlignCenter)
         label.show()

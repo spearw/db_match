@@ -147,7 +147,7 @@ def get_wiki_image(search_term):
     except:
         return 0
 
-def get_wiki_section(topic, n=2):
+def get_wiki_section(topic, n=10):
     return wikipedia.summary(topic, sentences=n)
 
 # Takes list and returns wiki first paragraph for each entry
