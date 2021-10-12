@@ -45,18 +45,20 @@ def match(db_path, tree_path, db_separator ="_", levenshtein_num = 4):
     print(output)
     return output
 
-
-def remove_suggestion(suggestion, suggestions):
-    print(f"Removing {suggestion} from future suggestions")
-    print("not yet implemented")
-
-
 def read_files(db_path, tree_path):
 
     dbs = []
     trees = []
+    filenames = []
+    if os.path.isdir(db_path):
+        filenames = os.listdir(db_path)
+    else:
+        filenames.append(os.path.basename(db_path))
+        db_path = os.path.dirname(db_path)
 
-    for filename in os.listdir(db_path):
+    for filename in filenames:
+        print(f"filename: {filename}")
+        print(f"db_path: {db_path}")
         if not filename.startswith('.'):
             with open(os.path.join(db_path, filename), 'r', encoding="utf-8") as f: # open in readonly mode
                 db = []
@@ -69,7 +71,14 @@ def read_files(db_path, tree_path):
                 db.pop(0)
                 dbs.append(db)
 
-    for filename in os.listdir(tree_path):
+    filenames = []
+    if os.path.isdir(tree_path):
+        filenames = os.listdir(tree_path)
+    else:
+        filenames.append(os.path.basename(tree_path))
+        tree_path = os.path.dirname(tree_path)
+
+    for filename in filenames:
         if not filename.startswith('.'):
             with open(os.path.join(tree_path, filename), 'r', encoding="utf-8") as f: # open in readonly mode
                 fname = os.path.basename(f.name)

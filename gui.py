@@ -1,4 +1,5 @@
 import sys
+import os
 import requests
 
 from PyQt5.QtCore import Qt
@@ -29,37 +30,60 @@ class MainMenu(QMainWindow):
         self.setCentralWidget(self.main_widget)
         self.main_layout = QGridLayout(self.main_widget)
 
-        # Add nexus selection layout
-        self.nexus_selection_layout = QVBoxLayout()
-        self.main_layout.addLayout(self.nexus_selection_layout, 0, 0)
+        # Set stylesheets
+        self.file_selection_stylesheet = "padding: 5px; border-radius: 0px; background-color: white; color: black; border: black 1px;"
 
         # Add db selection layout
-        self.db_selection_layout = QVBoxLayout()
-        self.main_layout.addLayout(self.db_selection_layout, 0, 1)
+        self.db_selection_layout = QGridLayout()
+        self.main_layout.addLayout(self.db_selection_layout, 0, 0)
+
+        # Add nexus selection layout
+        self.nexus_selection_layout = QGridLayout()
+        self.main_layout.addLayout(self.nexus_selection_layout, 0, 1)
 
         # Add file run button layout
-        self.run_button_layout = QHBoxLayout()
-        self.main_layout.addLayout(self.run_button_layout, 1, 0)
-
-        # Add nexus selection button
-        self.nexus_file_selection = QPushButton("DB File")
-        self.nexus_file_selection.clicked.connect(self.select_nexus_file)
-        self.nexus_path = TREE_PATH
-        self.nexus_path_label = QLabel(self.nexus_path)
-        self.nexus_selection_layout.addWidget(self.nexus_file_selection)
-        self.nexus_selection_layout.addWidget(self.nexus_path_label)
+        self.run_button_layout = QGridLayout()
+        self.main_layout.addLayout(self.run_button_layout, 1, 1)
 
         # Add db selection button
-        self.db_file_selection = QPushButton("DB File")
-        self.db_file_selection.clicked.connect(self.select_db_file)
+        self.db_label = QLabel("Database File Selection")
+        self.db_label.setAlignment(Qt.AlignBottom)
+        self.db_label.setFixedHeight(self.db_label.font().pointSize()*2)
+
         self.db_path = DB_PATH
-        self.db_path_label = QLabel(self.db_path)
-        self.db_selection_layout.addWidget(self.db_file_selection)
-        self.db_selection_layout.addWidget(self.db_path_label)
+        self.db_path_label = QLabel()
+        self.db_path_label.setStyleSheet(self.file_selection_stylesheet)
+        self.db_path_label.setFixedHeight(self.db_path_label.font().pointSize()*2)
+
+        self.db_file_selection = QPushButton("Change")
+        self.db_file_selection.clicked.connect(self.select_db_file)
+
+        self.db_selection_layout.addWidget(self.db_label, 0, 0, 1, 2)
+        self.db_selection_layout.addWidget(self.db_path_label, 2, 0, 1, 2)
+        self.db_selection_layout.addWidget(self.db_file_selection, 4, 0, 1, 1)
+
+        # Add nexus selection button
+        self.nexus_label = QLabel("Nexus File Selection")
+        self.nexus_label.setAlignment(Qt.AlignBottom)
+        self.nexus_label.setFixedHeight(self.nexus_label.font().pointSize()*2)
+
+        self.nexus_file_selection = QPushButton("Change")
+        self.nexus_file_selection.clicked.connect(self.select_nexus_file)
+
+        self.nexus_path = TREE_PATH
+        self.nexus_path_label = QLabel()
+        self.nexus_path_label.setStyleSheet(self.file_selection_stylesheet)
+        self.nexus_path_label.setFixedHeight(self.nexus_path_label.font().pointSize()*2)
+
+        self.nexus_selection_layout.addWidget(self.nexus_label, 0, 0, 1, 2)
+        self.nexus_selection_layout.addWidget(self.nexus_path_label, 2, 0, 1, 2)
+        self.nexus_selection_layout.addWidget(self.nexus_file_selection, 4, 0, 1, 1)
 
         # Add run button
+        self.run_button_spacer = QLabel()
         self.run_button = QPushButton("Run")
         self.run_button.clicked.connect(self.start_match)
+        self.run_button_layout.addWidget(self.run_button_spacer)
         self.run_button_layout.addWidget(self.run_button)
 
         self.loading_window = LoadingWindow(self)
@@ -67,13 +91,13 @@ class MainMenu(QMainWindow):
 
     def select_nexus_file(self):
         self.nexus_path = QFileDialog.getOpenFileName(self, 'Open file',
-                                            f'{self.nexus_path}', "Tree files (*.nex *.csv)")
-        self.nexus_path_label.setText(self.nexus_path[0])
+                                            f'{TREE_PATH}', "Tree files (*.nex *.csv)")[0]
+        self.nexus_path_label.setText(os.path.basename(self.nexus_path))
 
     def select_db_file(self):
         self.db_path = QFileDialog.getOpenFileName(self, 'Open file',
-                                                      f'{self.db_path}', "Tree files (*.nex *.csv)")
-        self.db_path_label.setText(self.db_path[0])
+                                                      f'{DB_PATH}', "Tree files (*.nex *.csv)")[0]
+        self.db_path_label.setText(os.path.basename(self.db_path))
 
     def start_match(self):
         # Might include other functionality, such as loading bar
@@ -84,7 +108,9 @@ class MainMenu(QMainWindow):
         self.dialogs.append(compare_window)
 
         info = read_wiki_file(INFO_PATH, INFO_FNAME)
-        taxa_list = match(DB_PATH, TREE_PATH, "_", 4)
+        print(f"db_path: {self.db_path}")
+        print(f"nexus_path: {self.nexus_path}")
+        taxa_list = match(self.db_path, self.nexus_path, "_", 4)
         missing_info = validate_info(info, taxa_list)
         wiki_info = get_wiki_info(missing_info)
         # Skip file writing if no info is added
