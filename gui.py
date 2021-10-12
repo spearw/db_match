@@ -22,15 +22,58 @@ class MainMenu(QMainWindow):
     # TODO: allow for setting of DB_PATH, TREE_PATH, and OUTPUT_PATH before run
     def __init__(self, parent=None):
         super(MainMenu, self).__init__(parent)
-        self.pushButton = QPushButton("Run")
 
-        self.setCentralWidget(self.pushButton)
+        # Create main_layout
+        self.main_widget = QWidget()
+        self.main_widget.setFocus()
+        self.setCentralWidget(self.main_widget)
+        self.main_layout = QGridLayout(self.main_widget)
 
-        self.pushButton.clicked.connect(self.start_match)
+        # Add nexus selection layout
+        self.nexus_selection_layout = QVBoxLayout()
+        self.main_layout.addLayout(self.nexus_selection_layout, 0, 0)
+
+        # Add db selection layout
+        self.db_selection_layout = QVBoxLayout()
+        self.main_layout.addLayout(self.db_selection_layout, 0, 1)
+
+        # Add file run button layout
+        self.run_button_layout = QHBoxLayout()
+        self.main_layout.addLayout(self.run_button_layout, 1, 0)
+
+        # Add nexus selection button
+        self.nexus_file_selection = QPushButton("DB File")
+        self.nexus_file_selection.clicked.connect(self.select_nexus_file)
+        self.nexus_path = TREE_PATH
+        self.nexus_path_label = QLabel(self.nexus_path)
+        self.nexus_selection_layout.addWidget(self.nexus_file_selection)
+        self.nexus_selection_layout.addWidget(self.nexus_path_label)
+
+        # Add db selection button
+        self.db_file_selection = QPushButton("DB File")
+        self.db_file_selection.clicked.connect(self.select_db_file)
+        self.db_path = DB_PATH
+        self.db_path_label = QLabel(self.db_path)
+        self.db_selection_layout.addWidget(self.db_file_selection)
+        self.db_selection_layout.addWidget(self.db_path_label)
+
+        # Add run button
+        self.run_button = QPushButton("Run")
+        self.run_button.clicked.connect(self.start_match)
+        self.run_button_layout.addWidget(self.run_button)
 
         self.loading_window = LoadingWindow(self)
-
         self.dialogs = list()
+
+    def select_nexus_file(self):
+        self.nexus_path = QFileDialog.getOpenFileName(self, 'Open file',
+                                            f'{self.nexus_path}', "Tree files (*.nex *.csv)")
+        self.nexus_path_label.setText(self.nexus_path[0])
+
+    def select_db_file(self):
+        self.db_path = QFileDialog.getOpenFileName(self, 'Open file',
+                                                      f'{self.db_path}', "Tree files (*.nex *.csv)")
+        self.db_path_label.setText(self.db_path[0])
 
     def start_match(self):
         # Might include other functionality, such as loading bar
