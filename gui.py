@@ -205,6 +205,9 @@ class Compare(QMainWindow):
         self.manual_btn = QPushButton("Enter", self)
         self.manual_btn.setMaximumWidth(150)
         self.manual_entry_layout.addWidget(self.manual_btn)
+        self.leave_btn = QPushButton("Leave as is", self)
+        self.leave_btn.setMaximumWidth(150)
+        self.manual_entry_layout.addWidget(self.leave_btn)
         self.manual_entry_layout.setContentsMargins(10, 10, 10, 10)
 
         # Init global variables
@@ -278,6 +281,7 @@ class Compare(QMainWindow):
         self.taxa_list.append(suggestion)
 
         self.line_edit.clear()
+        self.removed_suggestions.clear()
 
         self.compare_mismatch(taxa_iter, compare_window)
 
@@ -425,10 +429,23 @@ class Compare(QMainWindow):
             self.manual_btn.clicked.disconnect()
         except Exception:
             pass
+        try:
+            self.leave_btn.clicked.disconnect()
+        except Exception:
+            pass
 
         # Chooses the text entry box
+        self.manual_btn.setEnabled(False)
+        self.line_edit.textChanged.connect(self.disableButton)
         self.manual_btn.clicked.connect(lambda: self.confirm_text(self.line_edit.text(), taxa_iter, self))
+        # Chooses the text entry box
+        self.leave_btn.clicked.connect(lambda: self.confirm_text("", taxa_iter, self))
 
+    def disableButton(self):
+        if len(self.line_edit.text()) > 0:
+            self.manual_btn.setEnabled(True)
+        else:
+            self.manual_btn.setEnabled(False)
 
 def main():
     app = QApplication(sys.argv)

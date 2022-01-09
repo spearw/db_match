@@ -17,3 +17,8 @@ V0.04:
 * Species info now scrollable
 * General UI improvements
 * Add main menu
+
+V0.05:
+* Add 'leave as is' button
+* Enter button now requires text
+* Fix removing removed suggestions
