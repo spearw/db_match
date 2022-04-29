@@ -3,7 +3,6 @@ import re
 import wikipedia
 import requests
 import json
-from definitions import INFO_PATH
 from Levenshtein import distance as levenshtein_distance
 
 def match(db_path, tree_path, db_separator ="_", levenshtein_num = 4):
