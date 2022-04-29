@@ -4,12 +4,11 @@ import wikipedia
 import requests
 import json
 from Levenshtein import distance as levenshtein_distance
+from functools import lru_cache
 
-def match(db_path, tree_path, db_separator ="_", levenshtein_num = 4):
 
-
-    print("Starting match with parameters:", db_path, tree_path, db_separator, levenshtein_num)
-    dbs, tree = read_files(db_path, tree_path)
+def match(dbs, tree, db_separator="_", levenshtein_num=4):
+    print("Starting match with parameters:", dbs, tree, db_separator, levenshtein_num)
 
     output = []
     difference_threshold = int(levenshtein_num)
@@ -19,8 +18,8 @@ def match(db_path, tree_path, db_separator ="_", levenshtein_num = 4):
             genus_match = []
             species_match = []
             try:
-                genus_name = db_name.split(db_separator,1)[0]
-                species_name = db_name.split(db_separator,1)[1]
+                genus_name = db_name.split(db_separator, 1)[0]
+                species_name = db_name.split(db_separator, 1)[1]
             except:
                 break
 
@@ -44,8 +43,8 @@ def match(db_path, tree_path, db_separator ="_", levenshtein_num = 4):
     print(output)
     return output
 
-def read_files(db_path, tree_path):
 
+def read_files(db_path, tree_path):
     dbs = []
     trees = []
     filenames = []
@@ -59,7 +58,7 @@ def read_files(db_path, tree_path):
         print(f"filename: {filename}")
         print(f"db_path: {db_path}")
         if not filename.startswith('.'):
-            with open(os.path.join(db_path, filename), 'r', encoding="utf-8") as f: # open in readonly mode
+            with open(os.path.join(db_path, filename), 'r', encoding="utf-8") as f:  # open in readonly mode
                 db = []
                 for line in f:
                     # Get name for every line
@@ -79,7 +78,7 @@ def read_files(db_path, tree_path):
 
     for filename in filenames:
         if not filename.startswith('.'):
-            with open(os.path.join(tree_path, filename), 'r', encoding="utf-8") as f: # open in readonly mode
+            with open(os.path.join(tree_path, filename), 'r', encoding="utf-8") as f:  # open in readonly mode
                 fname = os.path.basename(f.name)
                 tree = []
                 copy = False
@@ -105,15 +104,15 @@ def read_files(db_path, tree_path):
 
     return dbs, tree
 
-# Takes the completed taxa_list and writes a new file that includes the new taxa names and the rest of the data from db_path
-#TODO: handle multiple input dbs, perhaps with search
-def write_file(taxa_list, db_path, output_path):
 
+# Takes the completed taxa_list and writes a new file that includes the new taxa names and the rest of the data from db_path
+# TODO: handle multiple input dbs, perhaps with search
+def write_file(taxa_list, db_path, output_path):
     outf = open(output_path + "/modified.csv", "w", encoding="utf-8")
 
     for filename in os.listdir(db_path):
         if not filename.startswith('.'):
-            with open(os.path.join(db_path, filename), 'r', encoding="utf-8") as f: # open in readonly mode
+            with open(os.path.join(db_path, filename), 'r', encoding="utf-8") as f:  # open in readonly mode
 
                 i = 0
 
@@ -132,6 +131,7 @@ def write_file(taxa_list, db_path, output_path):
 
     outf.close()
 
+
 def get_wiki_image(search_term):
     WIKI_REQUEST = 'http://en.wikipedia.org/w/api.php?action=query&prop=pageimages&format=json&piprop=original&titles='
     try:
@@ -139,15 +139,18 @@ def get_wiki_image(search_term):
         wikipedia.set_lang('en')
         wikipage = wikipedia.WikipediaPage(title=result[0])
         title = wikipage.title
-        response = requests.get(WIKI_REQUEST+title)
+        response = requests.get(WIKI_REQUEST + title)
         json_data = json.loads(response.text)
         img_link = list(json_data['query']['pages'].values())[0]['original']['source']
         return img_link
     except:
         return 0
 
+
+@lru_cache(maxsize=None)
 def get_wiki_section(topic, n=10):
     return wikipedia.summary(topic, sentences=n)
+
 
 # Takes list and returns wiki first paragraph for each entry
 def get_wiki_info(list):
@@ -158,6 +161,7 @@ def get_wiki_info(list):
         except:
             wiki_entries[species] = "No info"
     return wiki_entries
+
 
 def write_wiki_file(new_data, path, fname):
     try:
@@ -170,13 +174,15 @@ def write_wiki_file(new_data, path, fname):
         with open(f"{path}/{fname}", "w") as f:
             json.dump(new_data, f, indent=6, sort_keys=True)
 
+
 def read_wiki_file(path, fname):
     try:
         with open(f"{path}/{fname}", 'r') as f:
-            dict =json.load(f)
+            dict = json.load(f)
         return dict
     except:
         return {}
+
 
 # checks information in info and ensures it has entries for every possible match
 # returns list of all missing species. Empty list is fully complete.
@@ -196,6 +202,7 @@ def validate_info(info, suggestions):
                 missing_info.append(sub_suggestion)
     # return set to weed out duplicates
     return set(missing_info)
+
 
 if __name__ == '__main__':
     info = read_wiki_file("dat/info", "info.json")

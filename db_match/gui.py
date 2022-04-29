@@ -107,15 +107,20 @@ class MainMenu(QMainWindow):
         compare_window = Compare(self)
         self.dialogs.append(compare_window)
 
-        info = read_wiki_file(INFO_PATH, INFO_FNAME)
-        print(f"db_path: {self.db_path}")
-        print(f"nexus_path: {self.nexus_path}")
-        taxa_list = match(self.db_path, self.nexus_path, "_", 4)
-        missing_info = validate_info(info, taxa_list)
+        dbs, tree = read_files(self.db_path, self.nexus_path)
+        taxa_list = match(dbs, tree, "_", 4)
+
+        # Cached_info may be cached remotely or locally in future versions
+        # cached_info = read_wiki_file(INFO_PATH, INFO_FNAME)
+        cached_info = []
+
+        missing_info = validate_info(cached_info, taxa_list)
+        # This serves to call the information to cache at the beginning of a run, so a user can wait all at once at the beginning instead of iteratively
         wiki_info = get_wiki_info(missing_info)
-        # Skip file writing if no info is added
-        if wiki_info:
-            write_wiki_file(wiki_info, INFO_PATH, INFO_FNAME)
+
+        # No file caching
+        # if wiki_info:
+        #     write_wiki_file(wiki_info, INFO_PATH, INFO_FNAME)
 
         compare_window.__init__(self)
 
@@ -213,13 +218,13 @@ class Compare(QMainWindow):
         # Init global variables
         self.removed_suggestions = []
         self.taxa_list = []
-        self.suggestions_info = read_wiki_file(INFO_PATH, INFO_FNAME)
 
     def compare_mismatch(self, taxa_iter, compare_window):
 
         next_taxa = next(taxa_iter, None)
         print(next_taxa)
         if next_taxa:
+            # Type Str indicates to move on
             if type(next_taxa) == str:
                 self.taxa_list.append(next_taxa)
                 self.compare_mismatch(taxa_iter, compare_window)
@@ -289,8 +294,10 @@ class Compare(QMainWindow):
         # Create text box from wiki
         label = QLabel()
         label.setScaledContents(True)
-        print(f'wiki_info: {self.suggestions_info[taxa]}')
-        label.setText(self.suggestions_info[taxa])
+        try:
+            label.setText(get_wiki_section(taxa))
+        except:
+            label.setText("No information found")
         label.setWordWrap(True)
         label.setAlignment(Qt.AlignCenter)
         label.show()
