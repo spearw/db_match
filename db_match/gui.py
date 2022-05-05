@@ -1,11 +1,8 @@
 import sys
-import os
-import requests
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMainWindow, QVBoxLayout, \
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, \
     QHBoxLayout, QGridLayout, QLabel, QLineEdit
-from PyQt5.QtGui import QImage, QPixmap
 from definitions import *
 from src.python.match import *
 from PyQt5.QtGui import *
@@ -131,11 +128,9 @@ class MainMenu(QMainWindow):
 
 # dialog.close()
 
-# print("Starting Match...")
 #
 # start_time = time.time()
 # taxa_list = db_match(DB_PATH, TREE_PATH, "_", 4)
-# print("--- %s seconds ---" % (time.time() - start_time))
 #
 # compare = Compare(self)
 # compare.compare_mismatch(self, iter(taxa_list))
@@ -222,7 +217,6 @@ class Compare(QMainWindow):
     def compare_mismatch(self, taxa_iter, compare_window):
 
         next_taxa = next(taxa_iter, None)
-        print(next_taxa)
         if next_taxa:
             # Type Str indicates to move on
             if type(next_taxa) == str:
@@ -249,7 +243,6 @@ class Compare(QMainWindow):
 
     def make_confirm_function(self, suggestion, taxa_iter, compare_window):
         def confirm_suggestion():
-            print("You chose:", suggestion)
             self.taxa_list.append(suggestion)
 
             self.line_edit.clear()
@@ -261,28 +254,21 @@ class Compare(QMainWindow):
 
     def remove_chosen_entries(self, taxa):
 
-        print(f"NEXT TAXA: {taxa}")
         taxa_name = taxa[0]
 
         for taxa_suggestions in taxa:
-            print(f"TAXA_SUGGESTIONS: {taxa_suggestions}")
             if type(taxa_suggestions) != str:
                 for suggestion in taxa_suggestions:
                     # Remove suggestions that have already been chosen
                     # TODO: do this for entire suggestions list at beginning of new taxa to avoid changing once clicking
                     if suggestion in self.taxa_list:
                         self.removed_suggestions.append(suggestion)
-                        print(f"{suggestion} previously selected.")
                         taxa_suggestions.remove(suggestion)
                         continue
         return taxa
 
     def confirm_text(self, suggestion, taxa_iter, compare_window):
         # TODO: close window more intelligently
-        if not suggestion:
-            print('No more suggestions')
-
-        print("You chose:", suggestion)
         self.taxa_list.append(suggestion)
 
         self.line_edit.clear()
@@ -354,8 +340,6 @@ class Compare(QMainWindow):
             for k in reversed(range(layout.count())):
                 layout.itemAt(k).widget().setParent(None)
 
-        print(f"show_suggestions - next_taxa: {next_taxa}")
-        print(f"Removed category_suggestions: {self.removed_suggestions}")
 
         self.removed_suggestions_label.setParent(None)
         self.removed_suggestions_count.setText(f"Removed Suggestions: {len(self.removed_suggestions)}")
@@ -382,8 +366,6 @@ class Compare(QMainWindow):
                 self.taxa_layout.insertLayout(0, h_layout)
 
                 for suggestion in category_suggestions:
-
-                    print(suggestion)
 
                     # Add info and image widget to page
                     suggestion_layout = self.create_wiki_layout(suggestion, taxa_iter)
