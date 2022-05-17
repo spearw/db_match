@@ -3,7 +3,7 @@ import sys
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, \
     QHBoxLayout, QGridLayout, QLabel, QLineEdit
-from definitions import *
+from phylo-match.definitions import *
 from src.python.match import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
