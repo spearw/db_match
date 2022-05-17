@@ -1,13 +1,12 @@
 import sys
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, \
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, \
     QHBoxLayout, QGridLayout, QLabel, QLineEdit
 from src.python.definitions import *
 from src.python.match import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
+from PyQt6.QtWidgets import *
+from PyQt6.QtCore import *
 
 
 class LoadingWindow(QMainWindow):
@@ -44,7 +43,7 @@ class MainMenu(QMainWindow):
 
         # Add db selection button
         self.db_label = QLabel("Database File Selection")
-        self.db_label.setAlignment(Qt.AlignBottom)
+        self.db_label.setAlignment(Qt.AlignmentFlag.AlignBottom)
         self.db_label.setFixedHeight(self.db_label.font().pointSize()*2)
 
         self.db_path = DB_PATH
@@ -61,7 +60,7 @@ class MainMenu(QMainWindow):
 
         # Add nexus selection button
         self.nexus_label = QLabel("Nexus File Selection")
-        self.nexus_label.setAlignment(Qt.AlignBottom)
+        self.nexus_label.setAlignment(Qt.AlignmentFlag.AlignBottom)
         self.nexus_label.setFixedHeight(self.nexus_label.font().pointSize()*2)
 
         self.nexus_file_selection = QPushButton("Change")
@@ -156,7 +155,7 @@ class Compare(QMainWindow):
         self.main_layout.addLayout(self.info_layout, 0, 0,)
 
         self.taxa_layout = QVBoxLayout()
-        self.taxa_layout.setAlignment(Qt.AlignCenter)
+        self.taxa_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.main_layout.addLayout(self.taxa_layout, 1, 0)
 
         self.count_layout = QHBoxLayout()
@@ -170,21 +169,21 @@ class Compare(QMainWindow):
 
         # Add contents to info_layout
         self.taxa_label = QLabel("animals_animals")
-        self.taxa_label.setAlignment(Qt.AlignCenter)
+        self.taxa_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.taxa_label.setStyleSheet("padding: 30px; border-radius: 0px; background-color: lightgray; color: black;")
         self.info_layout.addWidget(self.taxa_label, 1)
 
         # Add contents to taxa_layout
         self.removed_suggestions_label = QLabel()
-        self.removed_suggestions_label.setAlignment(Qt.AlignCenter)
+        self.removed_suggestions_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.removed_suggestions_label.setContentsMargins(5, 5, 5, 5)
         self.removed_suggestions_count = QLabel()
-        self.removed_suggestions_count.setAlignment(Qt.AlignCenter)
+        self.removed_suggestions_count.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.taxa_layout.addWidget(self.removed_suggestions_count, 1)
 
         # Add contents to count_layout
         self.options_count_label = QHBoxLayout()
-        self.options_count_label.setAlignment(Qt.AlignCenter)
+        self.options_count_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.similar_entries_count = QPushButton()
         self.options_count_label.addWidget(self.similar_entries_count)
         self.same_species_count = QPushButton()
@@ -195,7 +194,7 @@ class Compare(QMainWindow):
 
         # Create label for main taxa info, to be attached as needed
         self.taxa_info = QLabel("So many options!")
-        self.taxa_info.setAlignment(Qt.AlignCenter)
+        self.taxa_info.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Add contents to manual_entry_layout
         self.entry_label = QLabel("Manual Entry:")
@@ -285,14 +284,14 @@ class Compare(QMainWindow):
         except:
             label.setText("No information found")
         label.setWordWrap(True)
-        label.setAlignment(Qt.AlignCenter)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         label.show()
 
         # Create scroll area for text box
         scroll = QScrollArea()
         scroll.setWidget(label)
         scroll.setWidgetResizable(True)
-        scroll.setAlignment(Qt.AlignCenter)
+        scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
         scroll.setFixedHeight(200)
         scroll.setMaximumWidth(200)
 
@@ -314,7 +313,7 @@ class Compare(QMainWindow):
 
         # Create base main_layout for taxa selection
         taxa_layout = QVBoxLayout()
-        taxa_layout.setAlignment(Qt.AlignCenter)
+        taxa_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Create taxa selection button
         btn = QPushButton(taxa, self)
@@ -440,7 +439,7 @@ def main():
     app = QApplication(sys.argv)
     main = MainMenu()
     main.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 if __name__ == '__main__':
