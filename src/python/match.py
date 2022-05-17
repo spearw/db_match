@@ -3,6 +3,8 @@ import re
 import wikipedia
 import requests
 import json
+from pathlib import Path
+import time
 from Levenshtein import distance as levenshtein_distance
 from functools import lru_cache
 
@@ -100,32 +102,34 @@ def read_files(db_path, tree_path):
 
     return dbs, tree
 
+def append_id(filename):
+    p = Path(filename)
+    return "{0}_{2}{1}".format(Path.joinpath(p.parent, p.stem), p.suffix, time.time())
 
 # Takes the completed taxa_list and writes a new file that includes the new taxa names and the rest of the data from db_path
 # TODO: handle multiple input dbs, perhaps with search
-def write_file(taxa_list, db_path, output_path):
-    outf = open(output_path + "/modified.csv", "w", encoding="utf-8")
+def write_file(taxa_list, db_path):
 
-    for filename in os.listdir(db_path):
-        if not filename.startswith('.'):
-            with open(os.path.join(db_path, filename), 'r', encoding="utf-8") as f:  # open in readonly mode
+    outfile_path = append_id(db_path)
 
-                i = 0
+    with open(outfile_path, "w", encoding="utf-8") as outf:
 
-                for line in f:
+        with open(db_path, 'r', encoding="utf-8") as f:  # open in readonly mode
 
-                    if i == 0:
-                        outf.write(line)
-                        i += 1
-                    else:
-                        csv_line = line.split(",")
-                        # Replace first line with new name, only if not blank
-                        if taxa_list[i - 1] != "":
-                            csv_line[0] = taxa_list[i - 1]
-                        outf.write(",".join(csv_line))
-                        i += 1
+            i = 0
 
-    outf.close()
+            for line in f:
+
+                if i == 0:
+                    outf.write(line)
+                    i += 1
+                else:
+                    csv_line = line.split(",")
+                    # Replace first line with new name, only if not blank
+                    if taxa_list[i - 1] != "":
+                        csv_line[0] = taxa_list[i - 1]
+                    outf.write(",".join(csv_line))
+                    i += 1
 
 
 def get_wiki_image(search_term):

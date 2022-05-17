@@ -16,7 +16,7 @@ class LoadingWindow(QMainWindow):
 
 
 class MainMenu(QMainWindow):
-    # TODO: allow for setting of DB_PATH, TREE_PATH, and OUTPUT_PATH before run
+    # TODO: allow for setting of DB_PATH, TREE_PATH, and before run
     def __init__(self, parent=None):
         super(MainMenu, self).__init__(parent)
 
@@ -78,9 +78,12 @@ class MainMenu(QMainWindow):
         # Add run button
         self.run_button_spacer = QLabel()
         self.run_button = QPushButton("Run")
+        self.run_button.setEnabled(False)
         self.run_button.clicked.connect(self.start_match)
         self.run_button_layout.addWidget(self.run_button_spacer)
         self.run_button_layout.addWidget(self.run_button)
+        self.nexus_file_selected = False
+        self.db_file_selected = False
 
         self.loading_window = LoadingWindow(self)
         self.dialogs = list()
@@ -90,10 +93,18 @@ class MainMenu(QMainWindow):
                                             f'{TREE_PATH}', "Tree files (*.nex *.csv)")[0]
         self.nexus_path_label.setText(os.path.basename(self.nexus_path))
 
+        self.nexus_file_selected = True
+        if self.nexus_file_selected and self.db_file_selected:
+            self.run_button.setEnabled(True)
+
     def select_db_file(self):
         self.db_path = QFileDialog.getOpenFileName(self, 'Open file',
                                                       f'{DB_PATH}', "Tree files (*.nex *.csv)")[0]
         self.db_path_label.setText(os.path.basename(self.db_path))
+
+        self.db_file_selected = True
+        if self.nexus_file_selected and self.db_file_selected:
+            self.run_button.setEnabled(True)
 
     def start_match(self):
         # Might include other functionality, such as loading bar
@@ -121,6 +132,7 @@ class MainMenu(QMainWindow):
         compare_window.__init__(self)
 
         compare_window.setParent(self)
+        compare_window.set_db_path(self.db_path)
         compare_window.compare_mismatch(iter(taxa_list), compare_window)
         self.hide()
 
@@ -139,6 +151,8 @@ class Compare(QMainWindow):
     def __init__(self, parent=None):
         super(Compare, self).__init__(parent)
         self.setWindowTitle("compare")
+
+        self.db_path = ""
 
         # Create main_layout
         self.main_widget = QWidget()
@@ -213,6 +227,9 @@ class Compare(QMainWindow):
         self.removed_suggestions = []
         self.taxa_list = []
 
+    def set_db_path(self, db_path):
+        self.db_path = db_path
+
     def compare_mismatch(self, taxa_iter, compare_window):
 
         next_taxa = next(taxa_iter, None)
@@ -235,7 +252,7 @@ class Compare(QMainWindow):
                 compare_window.show()
         else:
             # End of file, record results
-            write_file(self.taxa_list, DB_PATH, OUTPUT_PATH)
+            write_file(self.taxa_list, self.db_path)
             # Open main menu
             self.parent().show()
             self.close()
@@ -423,12 +440,12 @@ class Compare(QMainWindow):
 
         # Chooses the text entry box
         self.manual_btn.setEnabled(False)
-        self.line_edit.textChanged.connect(self.disableButton)
+        self.line_edit.textChanged.connect(self.disableManualButton)
         self.manual_btn.clicked.connect(lambda: self.confirm_text(self.line_edit.text(), taxa_iter, self))
         # Chooses the text entry box
         self.leave_btn.clicked.connect(lambda: self.confirm_text("", taxa_iter, self))
 
-    def disableButton(self):
+    def disableManualButton(self):
         if len(self.line_edit.text()) > 0:
             self.manual_btn.setEnabled(True)
         else:
