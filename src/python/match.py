@@ -8,7 +8,6 @@ from functools import lru_cache
 
 
 def match(dbs, tree, db_separator="_", levenshtein_num=4):
-    print("Starting match with parameters:", dbs, tree, db_separator, levenshtein_num)
 
     output = []
     difference_threshold = int(levenshtein_num)
@@ -40,7 +39,6 @@ def match(dbs, tree, db_separator="_", levenshtein_num=4):
             else:
                 output.append([db_name, suggestions, species_match, genus_match])
 
-    print(output)
     return output
 
 
@@ -55,8 +53,6 @@ def read_files(db_path, tree_path):
         db_path = os.path.dirname(db_path)
 
     for filename in filenames:
-        print(f"filename: {filename}")
-        print(f"db_path: {db_path}")
         if not filename.startswith('.'):
             with open(os.path.join(db_path, filename), 'r', encoding="utf-8") as f:  # open in readonly mode
                 db = []

@@ -321,7 +321,6 @@ class Compare(QMainWindow):
         # btn.adjustSize()
         f = self.make_confirm_function(taxa, taxa_iter, self)
         btn.clicked.connect(f)
-        btn.clicked.connect(lambda s=1: print(s))
         taxa_layout.addWidget(btn)
 
         scroll = self.create_wiki_label(taxa)
