@@ -1,16 +1,12 @@
 import sys
-import os
-import requests
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMainWindow, QVBoxLayout, \
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, \
     QHBoxLayout, QGridLayout, QLabel, QLineEdit
-from PyQt5.QtGui import QImage, QPixmap
-from definitions import *
+from src.python.definitions import *
 from src.python.match import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
+from PyQt6.QtWidgets import *
+from PyQt6.QtCore import *
 
 
 class LoadingWindow(QMainWindow):
@@ -20,7 +16,7 @@ class LoadingWindow(QMainWindow):
 
 
 class MainMenu(QMainWindow):
-    # TODO: allow for setting of DB_PATH, TREE_PATH, and OUTPUT_PATH before run
+    # TODO: allow for setting of DB_PATH, TREE_PATH, and before run
     def __init__(self, parent=None):
         super(MainMenu, self).__init__(parent)
 
@@ -47,7 +43,7 @@ class MainMenu(QMainWindow):
 
         # Add db selection button
         self.db_label = QLabel("Database File Selection")
-        self.db_label.setAlignment(Qt.AlignBottom)
+        self.db_label.setAlignment(Qt.AlignmentFlag.AlignBottom)
         self.db_label.setFixedHeight(self.db_label.font().pointSize()*2)
 
         self.db_path = DB_PATH
@@ -64,7 +60,7 @@ class MainMenu(QMainWindow):
 
         # Add nexus selection button
         self.nexus_label = QLabel("Nexus File Selection")
-        self.nexus_label.setAlignment(Qt.AlignBottom)
+        self.nexus_label.setAlignment(Qt.AlignmentFlag.AlignBottom)
         self.nexus_label.setFixedHeight(self.nexus_label.font().pointSize()*2)
 
         self.nexus_file_selection = QPushButton("Change")
@@ -82,9 +78,12 @@ class MainMenu(QMainWindow):
         # Add run button
         self.run_button_spacer = QLabel()
         self.run_button = QPushButton("Run")
+        self.run_button.setEnabled(False)
         self.run_button.clicked.connect(self.start_match)
         self.run_button_layout.addWidget(self.run_button_spacer)
         self.run_button_layout.addWidget(self.run_button)
+        self.nexus_file_selected = False
+        self.db_file_selected = False
 
         self.loading_window = LoadingWindow(self)
         self.dialogs = list()
@@ -94,10 +93,18 @@ class MainMenu(QMainWindow):
                                             f'{TREE_PATH}', "Tree files (*.nex *.csv)")[0]
         self.nexus_path_label.setText(os.path.basename(self.nexus_path))
 
+        self.nexus_file_selected = True
+        if self.nexus_file_selected and self.db_file_selected:
+            self.run_button.setEnabled(True)
+
     def select_db_file(self):
         self.db_path = QFileDialog.getOpenFileName(self, 'Open file',
                                                       f'{DB_PATH}', "Tree files (*.nex *.csv)")[0]
         self.db_path_label.setText(os.path.basename(self.db_path))
+
+        self.db_file_selected = True
+        if self.nexus_file_selected and self.db_file_selected:
+            self.run_button.setEnabled(True)
 
     def start_match(self):
         # Might include other functionality, such as loading bar
@@ -107,30 +114,34 @@ class MainMenu(QMainWindow):
         compare_window = Compare(self)
         self.dialogs.append(compare_window)
 
-        info = read_wiki_file(INFO_PATH, INFO_FNAME)
-        print(f"db_path: {self.db_path}")
-        print(f"nexus_path: {self.nexus_path}")
-        taxa_list = match(self.db_path, self.nexus_path, "_", 4)
-        missing_info = validate_info(info, taxa_list)
+        dbs, tree = read_files(self.db_path, self.nexus_path)
+        taxa_list = match(dbs, tree, "_", 4)
+
+        # Cached_info may be cached remotely or locally in future versions
+        # cached_info = read_wiki_file(INFO_PATH, INFO_FNAME)
+        cached_info = []
+
+        missing_info = validate_info(cached_info, taxa_list)
+        # This serves to call the information to cache at the beginning of a run, so a user can wait all at once at the beginning instead of iteratively
         wiki_info = get_wiki_info(missing_info)
-        # Skip file writing if no info is added
-        if wiki_info:
-            write_wiki_file(wiki_info, INFO_PATH, INFO_FNAME)
+
+        # No file caching
+        # if wiki_info:
+        #     write_wiki_file(wiki_info, INFO_PATH, INFO_FNAME)
 
         compare_window.__init__(self)
 
         compare_window.setParent(self)
+        compare_window.set_db_path(self.db_path)
         compare_window.compare_mismatch(iter(taxa_list), compare_window)
         self.hide()
 
 
 # dialog.close()
 
-# print("Starting Match...")
 #
 # start_time = time.time()
 # taxa_list = db_match(DB_PATH, TREE_PATH, "_", 4)
-# print("--- %s seconds ---" % (time.time() - start_time))
 #
 # compare = Compare(self)
 # compare.compare_mismatch(self, iter(taxa_list))
@@ -140,6 +151,8 @@ class Compare(QMainWindow):
     def __init__(self, parent=None):
         super(Compare, self).__init__(parent)
         self.setWindowTitle("compare")
+
+        self.db_path = ""
 
         # Create main_layout
         self.main_widget = QWidget()
@@ -156,7 +169,7 @@ class Compare(QMainWindow):
         self.main_layout.addLayout(self.info_layout, 0, 0,)
 
         self.taxa_layout = QVBoxLayout()
-        self.taxa_layout.setAlignment(Qt.AlignCenter)
+        self.taxa_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.main_layout.addLayout(self.taxa_layout, 1, 0)
 
         self.count_layout = QHBoxLayout()
@@ -170,21 +183,21 @@ class Compare(QMainWindow):
 
         # Add contents to info_layout
         self.taxa_label = QLabel("animals_animals")
-        self.taxa_label.setAlignment(Qt.AlignCenter)
+        self.taxa_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.taxa_label.setStyleSheet("padding: 30px; border-radius: 0px; background-color: lightgray; color: black;")
         self.info_layout.addWidget(self.taxa_label, 1)
 
         # Add contents to taxa_layout
         self.removed_suggestions_label = QLabel()
-        self.removed_suggestions_label.setAlignment(Qt.AlignCenter)
+        self.removed_suggestions_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.removed_suggestions_label.setContentsMargins(5, 5, 5, 5)
         self.removed_suggestions_count = QLabel()
-        self.removed_suggestions_count.setAlignment(Qt.AlignCenter)
+        self.removed_suggestions_count.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.taxa_layout.addWidget(self.removed_suggestions_count, 1)
 
         # Add contents to count_layout
         self.options_count_label = QHBoxLayout()
-        self.options_count_label.setAlignment(Qt.AlignCenter)
+        self.options_count_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.similar_entries_count = QPushButton()
         self.options_count_label.addWidget(self.similar_entries_count)
         self.same_species_count = QPushButton()
@@ -195,7 +208,7 @@ class Compare(QMainWindow):
 
         # Create label for main taxa info, to be attached as needed
         self.taxa_info = QLabel("So many options!")
-        self.taxa_info.setAlignment(Qt.AlignCenter)
+        self.taxa_info.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Add contents to manual_entry_layout
         self.entry_label = QLabel("Manual Entry:")
@@ -213,13 +226,15 @@ class Compare(QMainWindow):
         # Init global variables
         self.removed_suggestions = []
         self.taxa_list = []
-        self.suggestions_info = read_wiki_file(INFO_PATH, INFO_FNAME)
+
+    def set_db_path(self, db_path):
+        self.db_path = db_path
 
     def compare_mismatch(self, taxa_iter, compare_window):
 
         next_taxa = next(taxa_iter, None)
-        print(next_taxa)
         if next_taxa:
+            # Type Str indicates to move on
             if type(next_taxa) == str:
                 self.taxa_list.append(next_taxa)
                 self.compare_mismatch(taxa_iter, compare_window)
@@ -237,14 +252,13 @@ class Compare(QMainWindow):
                 compare_window.show()
         else:
             # End of file, record results
-            write_file(self.taxa_list, DB_PATH, OUTPUT_PATH)
+            write_file(self.taxa_list, self.db_path)
             # Open main menu
             self.parent().show()
             self.close()
 
     def make_confirm_function(self, suggestion, taxa_iter, compare_window):
         def confirm_suggestion():
-            print("You chose:", suggestion)
             self.taxa_list.append(suggestion)
 
             self.line_edit.clear()
@@ -256,28 +270,21 @@ class Compare(QMainWindow):
 
     def remove_chosen_entries(self, taxa):
 
-        print(f"NEXT TAXA: {taxa}")
         taxa_name = taxa[0]
 
         for taxa_suggestions in taxa:
-            print(f"TAXA_SUGGESTIONS: {taxa_suggestions}")
             if type(taxa_suggestions) != str:
                 for suggestion in taxa_suggestions:
                     # Remove suggestions that have already been chosen
                     # TODO: do this for entire suggestions list at beginning of new taxa to avoid changing once clicking
                     if suggestion in self.taxa_list:
                         self.removed_suggestions.append(suggestion)
-                        print(f"{suggestion} previously selected.")
                         taxa_suggestions.remove(suggestion)
                         continue
         return taxa
 
     def confirm_text(self, suggestion, taxa_iter, compare_window):
         # TODO: close window more intelligently
-        if not suggestion:
-            print('No more suggestions')
-
-        print("You chose:", suggestion)
         self.taxa_list.append(suggestion)
 
         self.line_edit.clear()
@@ -289,17 +296,19 @@ class Compare(QMainWindow):
         # Create text box from wiki
         label = QLabel()
         label.setScaledContents(True)
-        print(f'wiki_info: {self.suggestions_info[taxa]}')
-        label.setText(self.suggestions_info[taxa])
+        try:
+            label.setText(get_wiki_section(taxa))
+        except:
+            label.setText("No information found")
         label.setWordWrap(True)
-        label.setAlignment(Qt.AlignCenter)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         label.show()
 
         # Create scroll area for text box
         scroll = QScrollArea()
         scroll.setWidget(label)
         scroll.setWidgetResizable(True)
-        scroll.setAlignment(Qt.AlignCenter)
+        scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
         scroll.setFixedHeight(200)
         scroll.setMaximumWidth(200)
 
@@ -321,7 +330,7 @@ class Compare(QMainWindow):
 
         # Create base main_layout for taxa selection
         taxa_layout = QVBoxLayout()
-        taxa_layout.setAlignment(Qt.AlignCenter)
+        taxa_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Create taxa selection button
         btn = QPushButton(taxa, self)
@@ -329,7 +338,6 @@ class Compare(QMainWindow):
         # btn.adjustSize()
         f = self.make_confirm_function(taxa, taxa_iter, self)
         btn.clicked.connect(f)
-        btn.clicked.connect(lambda s=1: print(s))
         taxa_layout.addWidget(btn)
 
         scroll = self.create_wiki_label(taxa)
@@ -347,8 +355,6 @@ class Compare(QMainWindow):
             for k in reversed(range(layout.count())):
                 layout.itemAt(k).widget().setParent(None)
 
-        print(f"show_suggestions - next_taxa: {next_taxa}")
-        print(f"Removed category_suggestions: {self.removed_suggestions}")
 
         self.removed_suggestions_label.setParent(None)
         self.removed_suggestions_count.setText(f"Removed Suggestions: {len(self.removed_suggestions)}")
@@ -375,8 +381,6 @@ class Compare(QMainWindow):
                 self.taxa_layout.insertLayout(0, h_layout)
 
                 for suggestion in category_suggestions:
-
-                    print(suggestion)
 
                     # Add info and image widget to page
                     suggestion_layout = self.create_wiki_layout(suggestion, taxa_iter)
@@ -436,12 +440,12 @@ class Compare(QMainWindow):
 
         # Chooses the text entry box
         self.manual_btn.setEnabled(False)
-        self.line_edit.textChanged.connect(self.disableButton)
+        self.line_edit.textChanged.connect(self.disableManualButton)
         self.manual_btn.clicked.connect(lambda: self.confirm_text(self.line_edit.text(), taxa_iter, self))
         # Chooses the text entry box
         self.leave_btn.clicked.connect(lambda: self.confirm_text("", taxa_iter, self))
 
-    def disableButton(self):
+    def disableManualButton(self):
         if len(self.line_edit.text()) > 0:
             self.manual_btn.setEnabled(True)
         else:
@@ -451,7 +455,7 @@ def main():
     app = QApplication(sys.argv)
     main = MainMenu()
     main.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 if __name__ == '__main__':

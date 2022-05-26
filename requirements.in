@@ -1,0 +1,4 @@
+levenshtein==0.12.0
+PyQt6==6.3.0
+requests==2.25.1
+wikipedia==1.4.0

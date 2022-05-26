@@ -3,14 +3,13 @@ import re
 import wikipedia
 import requests
 import json
-from definitions import INFO_PATH
+from pathlib import Path
+import time
 from Levenshtein import distance as levenshtein_distance
+from functools import lru_cache
 
-def match(db_path, tree_path, db_separator ="_", levenshtein_num = 4):
 
-
-    print("Starting match with parameters:", db_path, tree_path, db_separator, levenshtein_num)
-    dbs, tree = read_files(db_path, tree_path)
+def match(dbs, tree, db_separator="_", levenshtein_num=4):
 
     output = []
     difference_threshold = int(levenshtein_num)
@@ -20,8 +19,8 @@ def match(db_path, tree_path, db_separator ="_", levenshtein_num = 4):
             genus_match = []
             species_match = []
             try:
-                genus_name = db_name.split(db_separator,1)[0]
-                species_name = db_name.split(db_separator,1)[1]
+                genus_name = db_name.split(db_separator, 1)[0]
+                species_name = db_name.split(db_separator, 1)[1]
             except:
                 break
 
@@ -42,11 +41,10 @@ def match(db_path, tree_path, db_separator ="_", levenshtein_num = 4):
             else:
                 output.append([db_name, suggestions, species_match, genus_match])
 
-    print(output)
     return output
 
-def read_files(db_path, tree_path):
 
+def read_files(db_path, tree_path):
     dbs = []
     trees = []
     filenames = []
@@ -57,10 +55,8 @@ def read_files(db_path, tree_path):
         db_path = os.path.dirname(db_path)
 
     for filename in filenames:
-        print(f"filename: {filename}")
-        print(f"db_path: {db_path}")
         if not filename.startswith('.'):
-            with open(os.path.join(db_path, filename), 'r', encoding="utf-8") as f: # open in readonly mode
+            with open(os.path.join(db_path, filename), 'r', encoding="utf-8") as f:  # open in readonly mode
                 db = []
                 for line in f:
                     # Get name for every line
@@ -80,7 +76,7 @@ def read_files(db_path, tree_path):
 
     for filename in filenames:
         if not filename.startswith('.'):
-            with open(os.path.join(tree_path, filename), 'r', encoding="utf-8") as f: # open in readonly mode
+            with open(os.path.join(tree_path, filename), 'r', encoding="utf-8") as f:  # open in readonly mode
                 fname = os.path.basename(f.name)
                 tree = []
                 copy = False
@@ -106,32 +102,35 @@ def read_files(db_path, tree_path):
 
     return dbs, tree
 
+def append_id(filename):
+    p = Path(filename)
+    return "{0}_{2}{1}".format(Path.joinpath(p.parent, p.stem), p.suffix, time.time())
+
 # Takes the completed taxa_list and writes a new file that includes the new taxa names and the rest of the data from db_path
-#TODO: handle multiple input dbs, perhaps with search
-def write_file(taxa_list, db_path, output_path):
+# TODO: handle multiple input dbs, perhaps with search
+def write_file(taxa_list, db_path):
 
-    outf = open(output_path + "/modified.csv", "w", encoding="utf-8")
+    outfile_path = append_id(db_path)
 
-    for filename in os.listdir(db_path):
-        if not filename.startswith('.'):
-            with open(os.path.join(db_path, filename), 'r', encoding="utf-8") as f: # open in readonly mode
+    with open(outfile_path, "w", encoding="utf-8") as outf:
 
-                i = 0
+        with open(db_path, 'r', encoding="utf-8") as f:  # open in readonly mode
 
-                for line in f:
+            i = 0
 
-                    if i == 0:
-                        outf.write(line)
-                        i += 1
-                    else:
-                        csv_line = line.split(",")
-                        # Replace first line with new name, only if not blank
-                        if taxa_list[i - 1] != "":
-                            csv_line[0] = taxa_list[i - 1]
-                        outf.write(",".join(csv_line))
-                        i += 1
+            for line in f:
 
-    outf.close()
+                if i == 0:
+                    outf.write(line)
+                    i += 1
+                else:
+                    csv_line = line.split(",")
+                    # Replace first line with new name, only if not blank
+                    if taxa_list[i - 1] != "":
+                        csv_line[0] = taxa_list[i - 1]
+                    outf.write(",".join(csv_line))
+                    i += 1
+
 
 def get_wiki_image(search_term):
     WIKI_REQUEST = 'http://en.wikipedia.org/w/api.php?action=query&prop=pageimages&format=json&piprop=original&titles='
@@ -140,15 +139,18 @@ def get_wiki_image(search_term):
         wikipedia.set_lang('en')
         wikipage = wikipedia.WikipediaPage(title=result[0])
         title = wikipage.title
-        response = requests.get(WIKI_REQUEST+title)
+        response = requests.get(WIKI_REQUEST + title)
         json_data = json.loads(response.text)
         img_link = list(json_data['query']['pages'].values())[0]['original']['source']
         return img_link
     except:
         return 0
 
+
+@lru_cache(maxsize=None)
 def get_wiki_section(topic, n=10):
     return wikipedia.summary(topic, sentences=n)
+
 
 # Takes list and returns wiki first paragraph for each entry
 def get_wiki_info(list):
@@ -159,6 +161,7 @@ def get_wiki_info(list):
         except:
             wiki_entries[species] = "No info"
     return wiki_entries
+
 
 def write_wiki_file(new_data, path, fname):
     try:
@@ -171,13 +174,15 @@ def write_wiki_file(new_data, path, fname):
         with open(f"{path}/{fname}", "w") as f:
             json.dump(new_data, f, indent=6, sort_keys=True)
 
+
 def read_wiki_file(path, fname):
     try:
         with open(f"{path}/{fname}", 'r') as f:
-            dict =json.load(f)
+            dict = json.load(f)
         return dict
     except:
         return {}
+
 
 # checks information in info and ensures it has entries for every possible match
 # returns list of all missing species. Empty list is fully complete.
@@ -197,6 +202,7 @@ def validate_info(info, suggestions):
                 missing_info.append(sub_suggestion)
     # return set to weed out duplicates
     return set(missing_info)
+
 
 if __name__ == '__main__':
     info = read_wiki_file("dat/info", "info.json")
