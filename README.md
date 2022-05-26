@@ -9,7 +9,7 @@ This project was built with python v3.8. Later versions should be fine, but no g
 Use the package manager [pip](https://pip.pypa.io/en/stable/) to install phylo-match.
 
 ```bash
-pip install phylo-match
+pip3 install phylo-match
 ```
 
 ## Usage
