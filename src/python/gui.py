@@ -133,7 +133,7 @@ class MainMenu(QMainWindow):
 
         compare_window.setParent(self)
         compare_window.set_db_path(self.db_path)
-        compare_window.compare_mismatch(iter(taxa_list), compare_window)
+        compare_window.compare_mismatch(iter(taxa_list))
         self.hide()
 
 
@@ -230,14 +230,14 @@ class Compare(QMainWindow):
     def set_db_path(self, db_path):
         self.db_path = db_path
 
-    def compare_mismatch(self, taxa_iter, compare_window):
+    def compare_mismatch(self, taxa_iter):
 
         next_taxa = next(taxa_iter, None)
         if next_taxa:
             # Type Str indicates to move on
             if type(next_taxa) == str:
                 self.taxa_list.append(next_taxa)
-                self.compare_mismatch(taxa_iter, compare_window)
+                self.compare_mismatch(taxa_iter)
             else:
                 db_taxa = next_taxa[0]
 
@@ -248,8 +248,7 @@ class Compare(QMainWindow):
                 self.show_suggestions(next_taxa, taxa_iter, i)
 
                 self.taxa_label.setText(db_taxa)
-                compare_window.setGeometry(100, 100, 600, 400)
-                compare_window.show()
+                self.show()
         else:
             # End of file, record results
             write_file(self.taxa_list, self.db_path)
@@ -264,7 +263,7 @@ class Compare(QMainWindow):
             self.line_edit.clear()
             self.removed_suggestions.clear()
 
-            self.compare_mismatch(taxa_iter, compare_window)
+            self.compare_mismatch(taxa_iter)
 
         return confirm_suggestion
 
@@ -290,7 +289,7 @@ class Compare(QMainWindow):
         self.line_edit.clear()
         self.removed_suggestions.clear()
 
-        self.compare_mismatch(taxa_iter, compare_window)
+        self.compare_mismatch(taxa_iter)
 
     def create_wiki_label(self, taxa):
         # Create text box from wiki
