@@ -13,6 +13,9 @@ class LoadingWindow(QMainWindow):
     def __init__(self, parent=None):
         super(LoadingWindow, self).__init__(parent)
         self.setWindowTitle("Loading, please wait...")
+        prog_bar = QProgressBar(self)
+        prog_bar.setGeometry(50, 100, 250, 30)
+        prog_bar.setValue(0)
 
 
 class MainMenu(QMainWindow):
@@ -40,6 +43,21 @@ class MainMenu(QMainWindow):
         # Add file run button layout
         self.run_button_layout = QGridLayout()
         self.main_layout.addLayout(self.run_button_layout, 1, 1)
+
+        # Add options layout
+        self.options_layout = QGridLayout()
+        self.main_layout.addLayout(self.options_layout, 1, 0)
+
+        # Add progress layout
+        self.progress_layout = QGridLayout()
+        self.main_layout.addLayout(self.progress_layout, 2, 0, 1, 2)
+
+        # Add progress bar and label
+        self.prog_label = QLabel("")
+        self.progress_layout.addWidget(self.prog_label)
+        self.prog_bar = QProgressBar(self)
+        self.prog_bar.setValue(0)
+        self.progress_layout.addWidget(self.prog_bar)
 
         # Add db selection button
         self.db_label = QLabel("Database File Selection")
@@ -75,6 +93,11 @@ class MainMenu(QMainWindow):
         self.nexus_selection_layout.addWidget(self.nexus_path_label, 2, 0, 1, 2)
         self.nexus_selection_layout.addWidget(self.nexus_file_selection, 4, 0, 1, 1)
 
+        # Add lookup checkbox
+        self.do_lookup = QCheckBox()
+        self.do_lookup.setText("Lookup Taxa Info (Slow)")
+        self.options_layout.addWidget(self.do_lookup)
+
         # Add run button
         self.run_button_spacer = QLabel()
         self.run_button = QPushButton("Run")
@@ -84,6 +107,7 @@ class MainMenu(QMainWindow):
         self.run_button_layout.addWidget(self.run_button)
         self.nexus_file_selected = False
         self.db_file_selected = False
+
 
         self.loading_window = LoadingWindow(self)
         self.dialogs = list()
@@ -112,27 +136,51 @@ class MainMenu(QMainWindow):
 
     def run_match(self):
         compare_window = Compare(self)
-        self.dialogs.append(compare_window)
 
+        self.prog_label.setText("Analyzing...")
+        self.prog_bar.setValue(0)
+        QApplication.processEvents()
+
+        self.dialogs.append(compare_window)
         dbs, tree = read_files(self.db_path, self.nexus_path)
         taxa_list = match(dbs, tree, "_", 4)
 
-        # Cached_info may be cached remotely or locally in future versions
-        # cached_info = read_wiki_file(INFO_PATH, INFO_FNAME)
-        cached_info = []
+        # If option for online lookup, do lookup
+        if self.do_lookup.isChecked():
+            # Cached_info may be cached remotely or locally in future versions
+            # cached_info = read_wiki_file(INFO_PATH, INFO_FNAME)
+            cached_info = []
 
-        missing_info = validate_info(cached_info, taxa_list)
-        # This serves to call the information to cache at the beginning of a run, so a user can wait all at once at the beginning instead of iteratively
-        wiki_info = get_wiki_info(missing_info)
+            missing_info = validate_info(cached_info, taxa_list)
+            self.prog_bar.setRange(0, len(missing_info))
+            self.prog_label.setText("Downloading...")
 
-        # No file caching
-        # if wiki_info:
-        #     write_wiki_file(wiki_info, INFO_PATH, INFO_FNAME)
+            # This serves to call the information to cache at the beginning of a run, so a user can wait all at once at the beginning instead of iteratively
+            for species in missing_info:
+                try:
+                    get_wiki_section(species)
+                except:
+                    f"{species} not found"
+                # Update progress bar
+                value = self.prog_bar.value()
+                self.prog_bar.setValue(value + 1)
+                # Process events will update gui
+                QApplication.processEvents()
+
+            self.prog_label.setText("Done!")
+            QApplication.processEvents()
+
+
+            # No file caching
+            # if wiki_info:
+            #     write_wiki_file(wiki_info, INFO_PATH, INFO_FNAME)
 
         compare_window.__init__(self)
 
         compare_window.setParent(self)
         compare_window.set_db_path(self.db_path)
+        compare_window.set_do_lookup(self.do_lookup.isChecked())
+
         compare_window.compare_mismatch(iter(taxa_list))
         self.hide()
 
@@ -153,6 +201,7 @@ class Compare(QMainWindow):
         self.setWindowTitle("compare")
 
         self.db_path = ""
+        self.do_lookup = False
 
         # Create main_layout
         self.main_widget = QWidget()
@@ -229,6 +278,9 @@ class Compare(QMainWindow):
 
     def set_db_path(self, db_path):
         self.db_path = db_path
+
+    def set_do_lookup(self, do_lookup):
+        self.do_lookup = do_lookup
 
     def compare_mismatch(self, taxa_iter):
 
@@ -313,7 +365,7 @@ class Compare(QMainWindow):
 
         return scroll
 
-    def create_wiki_layout(self, taxa, taxa_iter):
+    def create_taxa_layout(self, taxa, taxa_iter):
         # TODO: reimplement count_layout?
 
         # url_image = get_wiki_image(taxa)
@@ -339,8 +391,10 @@ class Compare(QMainWindow):
         btn.clicked.connect(f)
         taxa_layout.addWidget(btn)
 
-        scroll = self.create_wiki_label(taxa)
-        taxa_layout.addWidget(scroll)
+        if self.do_lookup:
+            scroll = self.create_wiki_label(taxa)
+            taxa_layout.addWidget(scroll)
+
         taxa_layout.setContentsMargins(10, 5, 10, 5)
 
         return taxa_layout
@@ -374,16 +428,19 @@ class Compare(QMainWindow):
             if i <= 3:
                 # reset and load taxa, if possible
                 self.taxa_info.setParent(None)
-                self.taxa_info = self.create_wiki_label(next_taxa[0])
-                h_layout = QHBoxLayout()
-                h_layout.addWidget(self.taxa_info)
-                self.taxa_layout.insertLayout(0, h_layout)
+
+                if self.do_lookup:
+                    self.taxa_info = self.create_wiki_label(next_taxa[0])
+                    h_layout = QHBoxLayout()
+                    h_layout.addWidget(self.taxa_info)
+                    self.taxa_layout.insertLayout(0, h_layout)
 
                 for suggestion in category_suggestions:
 
                     # Add info and image widget to page
-                    suggestion_layout = self.create_wiki_layout(suggestion, taxa_iter)
+                    suggestion_layout = self.create_taxa_layout(suggestion, taxa_iter)
                     self.suggestions_layout.addLayout(suggestion_layout)
+
 
                 # Check that all category_suggestions were not removed by being previously picked, continue if they were
                 if not category_suggestions:
