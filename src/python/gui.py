@@ -151,21 +151,24 @@ class MainMenu(QMainWindow):
             # cached_info = read_wiki_file(INFO_PATH, INFO_FNAME)
             cached_info = []
 
+            self.prog_label.setText("Checking Cache...")
+            QApplication.processEvents()
+
             missing_info = validate_info(cached_info, taxa_list)
             self.prog_bar.setRange(0, len(missing_info))
             self.prog_label.setText("Downloading...")
+            QApplication.processEvents()
 
-            # This serves to call the information to cache at the beginning of a run, so a user can wait all at once at the beginning instead of iteratively
-            for species in missing_info:
-                try:
-                    get_wiki_section(species)
-                except:
-                    f"{species} not found"
-                # Update progress bar
-                value = self.prog_bar.value()
-                self.prog_bar.setValue(value + 1)
-                # Process events will update gui
+            p = multiprocessing.Pool(multiprocessing.cpu_count())
+            wiki_entries = p.map_async(get_wiki_section, missing_info)
+            p.close()
+
+            # Loading Bar
+            while (True):
+                if (wiki_entries.ready()): break
+                self.prog_bar.setValue(len(missing_info) - wiki_entries._number_left * wiki_entries._chunksize)
                 QApplication.processEvents()
+                time.sleep(0.5)
 
             self.prog_label.setText("Done!")
             QApplication.processEvents()

@@ -5,6 +5,7 @@ import requests
 import json
 from pathlib import Path
 import time
+import multiprocessing
 from Levenshtein import distance as levenshtein_distance
 from functools import lru_cache
 
@@ -149,17 +150,16 @@ def get_wiki_image(search_term):
 
 @lru_cache(maxsize=None)
 def get_wiki_section(topic, n=10):
-    return wikipedia.summary(topic, sentences=n)
+    try:
+        return wikipedia.summary(topic, sentences=n)
+    except:
+        return "No Info"
 
 
 # Takes list and returns wiki first paragraph for each entry
-def get_wiki_info(list):
-    wiki_entries = {}
-    for species in list:
-        try:
-            wiki_entries[species] = get_wiki_section(species)
-        except:
-            wiki_entries[species] = "No info"
+def get_wiki_info(search_terms):
+    p = multiprocessing.Pool(multiprocessing.cpu_count())
+    wiki_entries = p.map(get_wiki_section, search_terms)
     return wiki_entries
 
 
