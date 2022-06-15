@@ -1,5 +1,6 @@
 import sys
 
+from diskcache import Cache
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, \
     QHBoxLayout, QGridLayout, QLabel, QLineEdit
@@ -40,9 +41,13 @@ class MainMenu(QMainWindow):
         self.nexus_selection_layout = QGridLayout()
         self.main_layout.addLayout(self.nexus_selection_layout, 0, 1)
 
+        # Add cache selection layout
+        self.cache_selection_layout = QGridLayout()
+        self.main_layout.addLayout(self.cache_selection_layout, 0, 3)
+
         # Add file run button layout
         self.run_button_layout = QGridLayout()
-        self.main_layout.addLayout(self.run_button_layout, 1, 1)
+        self.main_layout.addLayout(self.run_button_layout, 1, 3)
 
         # Add options layout
         self.options_layout = QGridLayout()
@@ -50,7 +55,7 @@ class MainMenu(QMainWindow):
 
         # Add progress layout
         self.progress_layout = QGridLayout()
-        self.main_layout.addLayout(self.progress_layout, 2, 0, 1, 2)
+        self.main_layout.addLayout(self.progress_layout, 2, 0, 1, 4)
 
         # Add progress bar and label
         self.prog_label = QLabel("")
@@ -93,8 +98,26 @@ class MainMenu(QMainWindow):
         self.nexus_selection_layout.addWidget(self.nexus_path_label, 2, 0, 1, 2)
         self.nexus_selection_layout.addWidget(self.nexus_file_selection, 4, 0, 1, 1)
 
+        # Add cache selection button
+        self.cache_label = QLabel("Cache Directory Selection")
+        self.cache_label.setAlignment(Qt.AlignmentFlag.AlignBottom)
+        self.cache_label.setFixedHeight(self.cache_label.font().pointSize()*2)
+
+        self.homedir = os.getenv("HOME")
+        self.cache_path = f"{self.homedir}/phylo-match-cache"
+        self.cache_path_label = QLabel(self.cache_path)
+        self.cache_path_label.setStyleSheet(self.file_selection_stylesheet)
+        self.cache_path_label.setFixedHeight(self.cache_path_label.font().pointSize()*2)
+
+        self.cache_file_selection = QPushButton("Change")
+        self.cache_file_selection.clicked.connect(self.select_cache_file)
+
+        self.cache_selection_layout.addWidget(self.cache_label, 0, 0, 1, 2)
+        self.cache_selection_layout.addWidget(self.cache_path_label, 2, 0, 1, 2)
+        self.cache_selection_layout.addWidget(self.cache_file_selection, 4, 0, 1, 1)
+
         # Add lookup checkbox
-        self.do_lookup = QCheckBox()
+        self.do_lookup = QCheckBox(checked=True)
         self.do_lookup.setText("Lookup Taxa Info (Slow)")
         self.options_layout.addWidget(self.do_lookup)
 
@@ -114,7 +137,7 @@ class MainMenu(QMainWindow):
 
     def select_nexus_file(self):
         self.nexus_path = QFileDialog.getOpenFileName(self, 'Open file',
-                                            f'{TREE_PATH}', "Tree files (*.nex *.csv)")[0]
+                                            f'{TREE_PATH}', "Tree files (*.nex)")[0]
         self.nexus_path_label.setText(os.path.basename(self.nexus_path))
 
         self.nexus_file_selected = True
@@ -123,12 +146,17 @@ class MainMenu(QMainWindow):
 
     def select_db_file(self):
         self.db_path = QFileDialog.getOpenFileName(self, 'Open file',
-                                                      f'{DB_PATH}', "Tree files (*.nex *.csv)")[0]
+                                                      f'{DB_PATH}', "DB files ( *.csv)")[0]
         self.db_path_label.setText(os.path.basename(self.db_path))
 
         self.db_file_selected = True
         if self.nexus_file_selected and self.db_file_selected:
             self.run_button.setEnabled(True)
+
+    def select_cache_file(self):
+        self.cache_path = QFileDialog.getExistingDirectory(self, 'Open Directory',
+                                                   f'{self.homedir}' "Cache files (*)")[0]
+        self.cache_path_label.setText(os.path.basename(self.cache_path))
 
     def start_match(self):
         # Might include other functionality, such as loading bar
@@ -149,12 +177,14 @@ class MainMenu(QMainWindow):
         if self.do_lookup.isChecked():
             # Cached_info may be cached remotely or locally in future versions
             # cached_info = read_wiki_file(INFO_PATH, INFO_FNAME)
-            cached_info = []
+            cache = Cache(self.cache_path)
 
             self.prog_label.setText("Checking Cache...")
             QApplication.processEvents()
 
-            missing_info = validate_info(cached_info, taxa_list)
+            flat_taxa_list = flatten(taxa_list)
+            missing_info = list(filter(lambda x: x not in cache, flat_taxa_list))
+
             self.prog_bar.setRange(0, len(missing_info))
             self.prog_label.setText("Downloading...")
             QApplication.processEvents()
@@ -167,16 +197,30 @@ class MainMenu(QMainWindow):
             while (True):
                 if (wiki_entries.ready()): break
                 self.prog_bar.setValue(len(missing_info) - wiki_entries._number_left * wiki_entries._chunksize)
+
+                # Simple animation
+                text = self.prog_label.text
+                if text == "Downloading...":
+                    self.prog_label.setText("Downloading.")
+                elif text == "Downloading.":
+                    self.prog_label.setText("Downloading..")
+                else:
+                    self.prog_label.setText("Downloading...")
+
                 QApplication.processEvents()
                 time.sleep(0.5)
 
-            self.prog_label.setText("Done!")
+
+            self.prog_label.setText("Caching...")
             QApplication.processEvents()
 
+            # Cache items
+            for key in missing_info:
+                value = get_wiki_section(key)
+                cache.set(key, value)
 
-            # No file caching
-            # if wiki_info:
-            #     write_wiki_file(wiki_info, INFO_PATH, INFO_FNAME)
+        self.prog_label.setText("Done!")
+        QApplication.processEvents()
 
         compare_window.__init__(self)
 
@@ -184,6 +228,7 @@ class MainMenu(QMainWindow):
         compare_window.set_db_path(self.db_path)
         compare_window.set_do_lookup(self.do_lookup.isChecked())
 
+        compare_window.set_cache(cache)
         compare_window.compare_mismatch(iter(taxa_list))
         self.hide()
 
@@ -205,6 +250,7 @@ class Compare(QMainWindow):
 
         self.db_path = ""
         self.do_lookup = False
+        self.cache = None
 
         # Create main_layout
         self.main_widget = QWidget()
@@ -285,6 +331,9 @@ class Compare(QMainWindow):
     def set_do_lookup(self, do_lookup):
         self.do_lookup = do_lookup
 
+    def set_cache(self, cache):
+        self.cache = cache
+
     def compare_mismatch(self, taxa_iter):
 
         next_taxa = next(taxa_iter, None)
@@ -351,7 +400,7 @@ class Compare(QMainWindow):
         label = QLabel()
         label.setScaledContents(True)
         try:
-            label.setText(get_wiki_section(taxa))
+            label.setText(get_wiki_section(taxa, cache=self.cache))
         except:
             label.setText("No information found")
         label.setWordWrap(True)

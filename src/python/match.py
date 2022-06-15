@@ -84,7 +84,7 @@ def read_files(db_path, tree_path):
                 # .nex file read
                 if fname.endswith('.nex'):
                     for line in f:
-                        if line.strip() == "TAXLABELS":
+                        if line.strip().upper() == "TAXLABELS":
                             copy = True
                             continue
                         elif line.strip() == ";":
@@ -149,11 +149,15 @@ def get_wiki_image(search_term):
 
 
 @lru_cache(maxsize=None)
-def get_wiki_section(topic, n=10):
-    try:
-        return wikipedia.summary(topic, sentences=n)
-    except:
-        return "No Info"
+def get_wiki_section(topic, cache=None, n=10):
+    if cache and topic in cache:
+        return cache.get(topic)
+    else:
+        try:
+            summary = wikipedia.summary(topic, sentences=n)
+        except:
+            summary = "No Info"
+        return summary
 
 
 # Takes list and returns wiki first paragraph for each entry
@@ -202,6 +206,19 @@ def validate_info(info, suggestions):
                 missing_info.append(sub_suggestion)
     # return set to weed out duplicates
     return set(missing_info)
+
+def flatten(xss):
+    flat_list = []
+    for xs in xss:
+        if not isinstance(xs, str):
+            for x in xs:
+                if type(x) is list:
+                    flat_list.extend(x)
+                else:
+                    flat_list.append(x)
+
+
+    return set(flat_list)
 
 
 if __name__ == '__main__':
