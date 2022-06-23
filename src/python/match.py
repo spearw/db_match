@@ -1,3 +1,22 @@
+'''
+    Phylo-Match matches a .csv file full of data (species-level data) and
+    a nexus file containing a phylogenetic tree
+    Copyright (C) William Spear
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+'''
+
 import os
 import re
 import wikipedia
@@ -5,6 +24,7 @@ import requests
 import json
 from pathlib import Path
 import time
+import multiprocessing
 from Levenshtein import distance as levenshtein_distance
 from functools import lru_cache
 
@@ -83,7 +103,7 @@ def read_files(db_path, tree_path):
                 # .nex file read
                 if fname.endswith('.nex'):
                     for line in f:
-                        if line.strip() == "TAXLABELS":
+                        if line.strip().upper() == "TAXLABELS":
                             copy = True
                             continue
                         elif line.strip() == ";":
@@ -148,18 +168,21 @@ def get_wiki_image(search_term):
 
 
 @lru_cache(maxsize=None)
-def get_wiki_section(topic, n=10):
-    return wikipedia.summary(topic, sentences=n)
+def get_wiki_section(topic, cache=None, n=10):
+    if cache and topic in cache:
+        return cache.get(topic)
+    else:
+        try:
+            summary = wikipedia.summary(topic, sentences=n)
+        except:
+            summary = "No Info"
+        return summary
 
 
 # Takes list and returns wiki first paragraph for each entry
-def get_wiki_info(list):
-    wiki_entries = {}
-    for species in list:
-        try:
-            wiki_entries[species] = get_wiki_section(species)
-        except:
-            wiki_entries[species] = "No info"
+def get_wiki_info(search_terms):
+    p = multiprocessing.Pool(multiprocessing.cpu_count())
+    wiki_entries = p.map(get_wiki_section, search_terms)
     return wiki_entries
 
 
@@ -202,6 +225,19 @@ def validate_info(info, suggestions):
                 missing_info.append(sub_suggestion)
     # return set to weed out duplicates
     return set(missing_info)
+
+def flatten(xss):
+    flat_list = []
+    for xs in xss:
+        if not isinstance(xs, str):
+            for x in xs:
+                if type(x) is list:
+                    flat_list.extend(x)
+                else:
+                    flat_list.append(x)
+
+
+    return set(flat_list)
 
 
 if __name__ == '__main__':

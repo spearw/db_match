@@ -1,5 +1,27 @@
-import sys
+'''
+    Phylo-Match matches a .csv file full of data (species-level data) and
+    a nexus file containing a phylogenetic tree
+    Copyright (C) William Spear
 
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+'''
+
+import sys
+import datetime
+
+from argparse import ArgumentParser
+from diskcache import Cache
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, \
     QHBoxLayout, QGridLayout, QLabel, QLineEdit
@@ -13,6 +35,9 @@ class LoadingWindow(QMainWindow):
     def __init__(self, parent=None):
         super(LoadingWindow, self).__init__(parent)
         self.setWindowTitle("Loading, please wait...")
+        prog_bar = QProgressBar(self)
+        prog_bar.setGeometry(50, 100, 250, 30)
+        prog_bar.setValue(0)
 
 
 class MainMenu(QMainWindow):
@@ -37,9 +62,28 @@ class MainMenu(QMainWindow):
         self.nexus_selection_layout = QGridLayout()
         self.main_layout.addLayout(self.nexus_selection_layout, 0, 1)
 
+        # Add cache selection layout
+        self.cache_selection_layout = QGridLayout()
+        self.main_layout.addLayout(self.cache_selection_layout, 0, 3)
+
         # Add file run button layout
         self.run_button_layout = QGridLayout()
-        self.main_layout.addLayout(self.run_button_layout, 1, 1)
+        self.main_layout.addLayout(self.run_button_layout, 1, 3)
+
+        # Add options layout
+        self.options_layout = QGridLayout()
+        self.main_layout.addLayout(self.options_layout, 1, 0)
+
+        # Add progress layout
+        self.progress_layout = QGridLayout()
+        self.main_layout.addLayout(self.progress_layout, 2, 0, 1, 4)
+
+        # Add progress bar and label
+        self.prog_label = QLabel("")
+        self.progress_layout.addWidget(self.prog_label)
+        self.prog_bar = QProgressBar(self)
+        self.prog_bar.setValue(0)
+        self.progress_layout.addWidget(self.prog_bar)
 
         # Add db selection button
         self.db_label = QLabel("Database File Selection")
@@ -75,6 +119,29 @@ class MainMenu(QMainWindow):
         self.nexus_selection_layout.addWidget(self.nexus_path_label, 2, 0, 1, 2)
         self.nexus_selection_layout.addWidget(self.nexus_file_selection, 4, 0, 1, 1)
 
+        # Add cache selection button
+        self.cache_label = QLabel("Cache Directory Selection")
+        self.cache_label.setAlignment(Qt.AlignmentFlag.AlignBottom)
+        self.cache_label.setFixedHeight(self.cache_label.font().pointSize()*2)
+
+        self.homedir = os.getenv("HOME")
+        self.cache_path = f"{self.homedir}/phylo-match-cache"
+        self.cache_path_label = QLabel(self.cache_path)
+        self.cache_path_label.setStyleSheet(self.file_selection_stylesheet)
+        self.cache_path_label.setFixedHeight(self.cache_path_label.font().pointSize()*2)
+
+        self.cache_file_selection = QPushButton("Change")
+        self.cache_file_selection.clicked.connect(self.select_cache_file)
+
+        self.cache_selection_layout.addWidget(self.cache_label, 0, 0, 1, 2)
+        self.cache_selection_layout.addWidget(self.cache_path_label, 2, 0, 1, 2)
+        self.cache_selection_layout.addWidget(self.cache_file_selection, 4, 0, 1, 1)
+
+        # Add lookup checkbox
+        self.do_lookup = QCheckBox(checked=True)
+        self.do_lookup.setText("Lookup Taxa Info")
+        self.options_layout.addWidget(self.do_lookup)
+
         # Add run button
         self.run_button_spacer = QLabel()
         self.run_button = QPushButton("Run")
@@ -85,12 +152,13 @@ class MainMenu(QMainWindow):
         self.nexus_file_selected = False
         self.db_file_selected = False
 
+
         self.loading_window = LoadingWindow(self)
         self.dialogs = list()
 
     def select_nexus_file(self):
         self.nexus_path = QFileDialog.getOpenFileName(self, 'Open file',
-                                            f'{TREE_PATH}', "Tree files (*.nex *.csv)")[0]
+                                            f'{TREE_PATH}', "Tree files (*.nex)")[0]
         self.nexus_path_label.setText(os.path.basename(self.nexus_path))
 
         self.nexus_file_selected = True
@@ -99,12 +167,17 @@ class MainMenu(QMainWindow):
 
     def select_db_file(self):
         self.db_path = QFileDialog.getOpenFileName(self, 'Open file',
-                                                      f'{DB_PATH}', "Tree files (*.nex *.csv)")[0]
+                                                      f'{DB_PATH}', "DB files ( *.csv)")[0]
         self.db_path_label.setText(os.path.basename(self.db_path))
 
         self.db_file_selected = True
         if self.nexus_file_selected and self.db_file_selected:
             self.run_button.setEnabled(True)
+
+    def select_cache_file(self):
+        self.cache_path = QFileDialog.getExistingDirectory(self, 'Open Directory',
+                                                   f'{self.homedir}' "Cache files (*)")[0]
+        self.cache_path_label.setText(os.path.basename(self.cache_path))
 
     def start_match(self):
         # Might include other functionality, such as loading bar
@@ -112,28 +185,72 @@ class MainMenu(QMainWindow):
 
     def run_match(self):
         compare_window = Compare(self)
-        self.dialogs.append(compare_window)
 
+        self.prog_label.setText("Analyzing...")
+        self.prog_bar.setValue(0)
+        QApplication.processEvents()
+
+        self.dialogs.append(compare_window)
         dbs, tree = read_files(self.db_path, self.nexus_path)
         taxa_list = match(dbs, tree, "_", 4)
 
-        # Cached_info may be cached remotely or locally in future versions
-        # cached_info = read_wiki_file(INFO_PATH, INFO_FNAME)
-        cached_info = []
+        # If option for online lookup, do lookup
+        if self.do_lookup.isChecked():
+            # Cached_info may be cached remotely or locally in future versions
+            # cached_info = read_wiki_file(INFO_PATH, INFO_FNAME)
+            cache = Cache(self.cache_path)
 
-        missing_info = validate_info(cached_info, taxa_list)
-        # This serves to call the information to cache at the beginning of a run, so a user can wait all at once at the beginning instead of iteratively
-        wiki_info = get_wiki_info(missing_info)
+            self.prog_label.setText("Checking Cache...")
+            QApplication.processEvents()
 
-        # No file caching
-        # if wiki_info:
-        #     write_wiki_file(wiki_info, INFO_PATH, INFO_FNAME)
+            flat_taxa_list = flatten(taxa_list)
+            missing_info = list(filter(lambda x: x not in cache, flat_taxa_list))
+
+            self.prog_bar.setRange(0, len(missing_info))
+            self.prog_label.setText("Downloading...")
+            QApplication.processEvents()
+
+            p = multiprocessing.Pool(multiprocessing.cpu_count())
+            wiki_entries = p.map_async(get_wiki_section, missing_info)
+            p.close()
+
+            # Loading Bar
+            while (True):
+                if (wiki_entries.ready()): break
+                self.prog_bar.setValue(len(missing_info) - wiki_entries._number_left * wiki_entries._chunksize)
+
+                # Simple animation
+                text = self.prog_label.text
+                if text == "Downloading...":
+                    self.prog_label.setText("Downloading.")
+                elif text == "Downloading.":
+                    self.prog_label.setText("Downloading..")
+                else:
+                    self.prog_label.setText("Downloading...")
+
+                QApplication.processEvents()
+                time.sleep(0.5)
+
+
+            self.prog_label.setText("Caching...")
+            QApplication.processEvents()
+
+            # Cache items
+            for key in missing_info:
+                value = get_wiki_section(key)
+                cache.set(key, value)
+
+        self.prog_label.setText("Done!")
+        QApplication.processEvents()
 
         compare_window.__init__(self)
 
         compare_window.setParent(self)
         compare_window.set_db_path(self.db_path)
-        compare_window.compare_mismatch(iter(taxa_list), compare_window)
+        compare_window.set_do_lookup(self.do_lookup.isChecked())
+
+        compare_window.set_cache(cache)
+        compare_window.compare_mismatch(iter(taxa_list))
         self.hide()
 
 
@@ -153,6 +270,8 @@ class Compare(QMainWindow):
         self.setWindowTitle("compare")
 
         self.db_path = ""
+        self.do_lookup = False
+        self.cache = None
 
         # Create main_layout
         self.main_widget = QWidget()
@@ -230,14 +349,20 @@ class Compare(QMainWindow):
     def set_db_path(self, db_path):
         self.db_path = db_path
 
-    def compare_mismatch(self, taxa_iter, compare_window):
+    def set_do_lookup(self, do_lookup):
+        self.do_lookup = do_lookup
+
+    def set_cache(self, cache):
+        self.cache = cache
+
+    def compare_mismatch(self, taxa_iter):
 
         next_taxa = next(taxa_iter, None)
         if next_taxa:
             # Type Str indicates to move on
             if type(next_taxa) == str:
                 self.taxa_list.append(next_taxa)
-                self.compare_mismatch(taxa_iter, compare_window)
+                self.compare_mismatch(taxa_iter)
             else:
                 db_taxa = next_taxa[0]
 
@@ -248,8 +373,7 @@ class Compare(QMainWindow):
                 self.show_suggestions(next_taxa, taxa_iter, i)
 
                 self.taxa_label.setText(db_taxa)
-                compare_window.setGeometry(100, 100, 600, 400)
-                compare_window.show()
+                self.show()
         else:
             # End of file, record results
             write_file(self.taxa_list, self.db_path)
@@ -264,7 +388,7 @@ class Compare(QMainWindow):
             self.line_edit.clear()
             self.removed_suggestions.clear()
 
-            self.compare_mismatch(taxa_iter, compare_window)
+            self.compare_mismatch(taxa_iter)
 
         return confirm_suggestion
 
@@ -290,14 +414,14 @@ class Compare(QMainWindow):
         self.line_edit.clear()
         self.removed_suggestions.clear()
 
-        self.compare_mismatch(taxa_iter, compare_window)
+        self.compare_mismatch(taxa_iter)
 
     def create_wiki_label(self, taxa):
         # Create text box from wiki
         label = QLabel()
         label.setScaledContents(True)
         try:
-            label.setText(get_wiki_section(taxa))
+            label.setText(get_wiki_section(taxa, cache=self.cache))
         except:
             label.setText("No information found")
         label.setWordWrap(True)
@@ -314,7 +438,7 @@ class Compare(QMainWindow):
 
         return scroll
 
-    def create_wiki_layout(self, taxa, taxa_iter):
+    def create_taxa_layout(self, taxa, taxa_iter):
         # TODO: reimplement count_layout?
 
         # url_image = get_wiki_image(taxa)
@@ -340,8 +464,10 @@ class Compare(QMainWindow):
         btn.clicked.connect(f)
         taxa_layout.addWidget(btn)
 
-        scroll = self.create_wiki_label(taxa)
-        taxa_layout.addWidget(scroll)
+        if self.do_lookup:
+            scroll = self.create_wiki_label(taxa)
+            taxa_layout.addWidget(scroll)
+
         taxa_layout.setContentsMargins(10, 5, 10, 5)
 
         return taxa_layout
@@ -375,16 +501,19 @@ class Compare(QMainWindow):
             if i <= 3:
                 # reset and load taxa, if possible
                 self.taxa_info.setParent(None)
-                self.taxa_info = self.create_wiki_label(next_taxa[0])
-                h_layout = QHBoxLayout()
-                h_layout.addWidget(self.taxa_info)
-                self.taxa_layout.insertLayout(0, h_layout)
+
+                if self.do_lookup:
+                    self.taxa_info = self.create_wiki_label(next_taxa[0])
+                    h_layout = QHBoxLayout()
+                    h_layout.addWidget(self.taxa_info)
+                    self.taxa_layout.insertLayout(0, h_layout)
 
                 for suggestion in category_suggestions:
 
                     # Add info and image widget to page
-                    suggestion_layout = self.create_wiki_layout(suggestion, taxa_iter)
+                    suggestion_layout = self.create_taxa_layout(suggestion, taxa_iter)
                     self.suggestions_layout.addLayout(suggestion_layout)
+
 
                 # Check that all category_suggestions were not removed by being previously picked, continue if they were
                 if not category_suggestions:
@@ -459,4 +588,48 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = ArgumentParser()
+    parser.add_argument(
+        "--show-c",
+        action="store_true",
+        help="Show copyright",
+    )
+    parser.add_argument(
+        "--show-w",
+        action="store_true",
+        help="Show warranty",
+    )
+    args = parser.parse_args()
+    print(f"""
+    Phylo-Match  Copyright (C) {datetime.date.today().year}  William Spear
+    This program comes with ABSOLUTELY NO WARRANTY; for details type `phylo-match --show-w'.
+    This is free software, and you are welcome to redistribute it
+    under certain conditions; type `phylo-match --show-c' for details.
+    """)
+
+    if args.show_w:
+        print("""
+        THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY
+        APPLICABLE LAW.  EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT
+        HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY
+        OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO,
+        THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+        PURPOSE.  THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM
+        IS WITH YOU.  SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF
+        ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
+        """)
+    elif args.show_c:
+        print("""
+        You may convey verbatim copies of the Program's source code as you
+        receive it, in any medium, provided that you conspicuously and
+        appropriately publish on each copy an appropriate copyright notice;
+        keep intact all notices stating that this License and any
+        non-permissive terms added in accord with section 7 apply to the code;
+        keep intact all notices of the absence of any warranty; and give all
+        recipients a copy of this License along with the Program.
+
+          You may charge any price or no price for each copy that you convey,
+        and you may offer support or warranty protection for a fee.
+        """)
+    else:
+        main()
