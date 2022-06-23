@@ -1,5 +1,26 @@
-import sys
+'''
+    Phylo-Match matches a .csv file full of data (species-level data) and
+    a nexus file containing a phylogenetic tree
+    Copyright (C) William Spear
 
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+'''
+
+import sys
+import datetime
+
+from argparse import ArgumentParser
 from diskcache import Cache
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, \
@@ -567,4 +588,48 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = ArgumentParser()
+    parser.add_argument(
+        "--show-c",
+        action="store_true",
+        help="Show copyright",
+    )
+    parser.add_argument(
+        "--show-w",
+        action="store_true",
+        help="Show warranty",
+    )
+    args = parser.parse_args()
+    print(f"""
+    Phylo-Match  Copyright (C) {datetime.date.today().year}  William Spear
+    This program comes with ABSOLUTELY NO WARRANTY; for details type `phylo-match --show-w'.
+    This is free software, and you are welcome to redistribute it
+    under certain conditions; type `phylo-match --show-c' for details.
+    """)
+
+    if args.show_w:
+        print("""
+        THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY
+        APPLICABLE LAW.  EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT
+        HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY
+        OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO,
+        THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+        PURPOSE.  THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM
+        IS WITH YOU.  SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF
+        ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
+        """)
+    elif args.show_c:
+        print("""
+        You may convey verbatim copies of the Program's source code as you
+        receive it, in any medium, provided that you conspicuously and
+        appropriately publish on each copy an appropriate copyright notice;
+        keep intact all notices stating that this License and any
+        non-permissive terms added in accord with section 7 apply to the code;
+        keep intact all notices of the absence of any warranty; and give all
+        recipients a copy of this License along with the Program.
+
+          You may charge any price or no price for each copy that you convey,
+        and you may offer support or warranty protection for a fee.
+        """)
+    else:
+        main()
