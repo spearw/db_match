@@ -139,7 +139,7 @@ class MainMenu(QMainWindow):
 
         # Add lookup checkbox
         self.do_lookup = QCheckBox(checked=True)
-        self.do_lookup.setText("Lookup Taxa Info (Slow)")
+        self.do_lookup.setText("Lookup Taxa Info")
         self.options_layout.addWidget(self.do_lookup)
 
         # Add run button
