@@ -49,15 +49,15 @@ Once all selections have been made, a new .csv file will be created in the same 
 
 The program (correctly) thinks my best bet to match the database taxon Aotus azarae is Aotus azarai from the tree. But if I don't like that option I can click on 'same species' to see other taxa in the tree with the species name "azarae" or 'same genus' to see other members of the genus Aotus.
 
-![Similar Example](images/similar_example.png)
+![Similar Example](https://github.com/spearw/phylo-match/raw/main/images/similar_example.png)
 
 Here's an example of the 'same species' option at work: The database has Vicunga pacos but the tree has Lama pacos. This is useful if the genus has been split up.
 
-![Species Example](images/species_example.png)
+![Species Example](https://github.com/spearw/phylo-match/raw/main/images/species_example.png)
 
 Here's an example where I might want to use the "Same Genus" option. This can be useful if you don't have many taxa in that genus and it doesn't really matter which species in the genus you use: Here I have data for Cercocebus atys but that taxon isn't in the tree. I could use a different Cercocebus species as a substitute. The 'removed suggestions' in the bottom left tells me that C. agilis is already matched between the data and tree, but C. atys and C. torquatus are sister species, both equally closely related to C. agilis, so I can use C. torquatus instead.
 
-![Genus Example](images/genus_example.png)
+![Genus Example](https://github.com/spearw/phylo-match/raw/main/images/genus_example.png)
 
 
 ## Contributing
