@@ -37,7 +37,7 @@ phylo-match
 ```
 Use the gui to select a database file (.csv), and a taxa tree (.nexus) to match the database to. Click run when you are happy with your selection.
 
-*Phylo-Match does all of its calculations and api requests upfront, so users may have to wait 10-15 minutes after run is clicked, depending on internet speed.*
+*Phylo-Match does all of its calculations and api requests upfront, so users may have to wait 10-15 minutes after run is clicked, depending on internet speed and whether these taxa are already in their local cache.*
 
 *This time can be minimized by unchecking 'Lookup Taxa Info' - a good idea if you're very familiar with the taxa, but the project will not provide information about matches beyond the name.*
 
