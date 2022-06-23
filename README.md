@@ -55,7 +55,7 @@ Here's an example of the 'same species' option at work: The database has Vicunga
 
 ![Species Example](https://github.com/spearw/phylo-match/raw/main/images/species_example.png)
 
-Here's an example where I might want to use the "Same Genus" option. This can be useful if you don't have many taxa in that genus and it doesn't really matter which species in the genus you use: Here I have data for Cercocebus atys but that taxon isn't in the tree. I could use a different Cercocebus species as a substitute. The 'removed suggestions' in the bottom left tells me that C. agilis is already matched between the data and tree, but C. atys and C. torquatus are sister species, both equally closely related to C. agilis, so I can use C. torquatus instead.
+Here's an example where I might want to use the "Same Genus" option. This can be useful if you don't have many taxa in that genus and it doesn't really matter which species in the genus you use: Here I have data for Cercocebus atys but that taxon isn't in the tree. I could use a different Cercocebus species as a substitute. The 'removed suggestions' in the bottom left tells me that C. agilis is already matched between the data and tree. Since I know that C. atys and C. torquatus are sister species, both equally closely related to C. agilis, I can use C. torquatus instead.
 
 ![Genus Example](https://github.com/spearw/phylo-match/raw/main/images/genus_example.png)
 
