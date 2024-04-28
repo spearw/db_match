@@ -25,8 +25,8 @@ from diskcache import Cache
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, \
     QHBoxLayout, QGridLayout, QLabel, QLineEdit
-from src.python.definitions import *
-from src.python.match import *
+from phylo_match.definitions.definitions import *
+from phylo_match.match.match import *
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 

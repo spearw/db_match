@@ -14,3 +14,6 @@ phylo_match.egg-info
 # Ignore IDE files
 phylo-match.iml
 .idea/*
+
+# Ignore pycache files
+__pycache__
