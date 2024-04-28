@@ -192,7 +192,7 @@ class MainMenu(QMainWindow):
 
         self.dialogs.append(compare_window)
         dbs, tree = read_files(self.db_path, self.nexus_path)
-        taxa_list = match(dbs, tree, "_", 4)
+        taxa_list, compare_window.perfect_matches = match(dbs, tree, "_", 4)
 
         # If option for online lookup, do lookup
         if self.do_lookup.isChecked():
@@ -244,7 +244,6 @@ class MainMenu(QMainWindow):
         QApplication.processEvents()
 
         compare_window.__init__(self)
-
         compare_window.setParent(self)
         compare_window.set_db_path(self.db_path)
         compare_window.set_do_lookup(self.do_lookup.isChecked())
@@ -396,15 +395,15 @@ class Compare(QMainWindow):
 
         taxa_name = taxa[0]
 
-        for taxa_suggestions in taxa:
+        for i, taxa_suggestions in enumerate(taxa):
             if type(taxa_suggestions) != str:
                 for suggestion in taxa_suggestions:
                     # Remove suggestions that have already been chosen
                     # TODO: do this for entire suggestions list at beginning of new taxa to avoid changing once clicking
-                    if suggestion in self.taxa_list:
+                    if suggestion in self.taxa_list or suggestion in self.perfect_matches:
                         self.removed_suggestions.append(suggestion)
-                        taxa_suggestions.remove(suggestion)
                         continue
+                taxa[i] = [x for x in taxa_suggestions if x not in self.removed_suggestions]
         return taxa
 
     def confirm_text(self, suggestion, taxa_iter, compare_window):

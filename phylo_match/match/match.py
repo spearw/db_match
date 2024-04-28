@@ -32,6 +32,7 @@ from functools import lru_cache
 def match(dbs, tree, db_separator="_", levenshtein_num=4):
 
     output = []
+    perfect_matches = []
     difference_threshold = int(levenshtein_num)
     for db in dbs:
         for db_name in db:
@@ -58,10 +59,11 @@ def match(dbs, tree, db_separator="_", levenshtein_num=4):
 
             if found_match:
                 output.append(db_name)
+                perfect_matches.append(db_name)
             else:
                 output.append([db_name, suggestions, species_match, genus_match])
 
-    return output
+    return output, perfect_matches
 
 
 def read_files(db_path, tree_path):
