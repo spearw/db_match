@@ -51,9 +51,9 @@ def match(dbs, tree, db_separator="_", levenshtein_num=4):
                     break
                 elif levenshtein_distance(db_name, tree_name) < difference_threshold:
                     suggestions.append(tree_name)
-                elif re.match(rf".*{species_name}", tree_name):
+                elif re.match(rf".*[_| ]{species_name}$", tree_name):
                     species_match.append(tree_name)
-                elif re.match(rf"{genus_name}*", tree_name):
+                elif re.match(rf"^{genus_name}[_| ]", tree_name):
                     genus_match.append(tree_name)
 
             if found_match:
