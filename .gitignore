@@ -1,0 +1,16 @@
+# Ignore dat generally, except specific files
+dat
+!dat/db/test_data.csv
+!dat/tree/Upham.nex
+!dat/avgs_useful_data.csv
+!dat/test_tree.nex
+
+# Ignore dist
+dist
+
+# Ignore eggs
+phylo_match.egg-info
+
+# Ignore IDE files
+phylo-match.iml
+.idea/*
