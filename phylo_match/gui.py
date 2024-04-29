@@ -306,9 +306,9 @@ class Compare(QMainWindow):
         self.info_layout.addWidget(self.taxa_label, 1)
 
         # Add contents to taxa_layout
-        self.removed_suggestions_label = QLabel()
-        self.removed_suggestions_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.removed_suggestions_label.setContentsMargins(5, 5, 5, 5)
+        self.removed_suggestions_scroll_area = QScrollArea()
+        self.removed_suggestions_scroll_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.removed_suggestions_scroll_area.setContentsMargins(5, 5, 5, 5)
         self.removed_suggestions_count = QLabel()
         self.removed_suggestions_count.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.taxa_layout.addWidget(self.removed_suggestions_count, 1)
@@ -415,7 +415,7 @@ class Compare(QMainWindow):
 
         self.compare_mismatch(taxa_iter)
 
-    def create_wiki_label(self, taxa):
+    def create_wiki_scroll_box(self, taxa):
         # Create text box from wiki
         label = QLabel()
         label.setScaledContents(True)
@@ -464,12 +464,34 @@ class Compare(QMainWindow):
         taxa_layout.addWidget(btn)
 
         if self.do_lookup:
-            scroll = self.create_wiki_label(taxa)
+            scroll = self.create_wiki_scroll_box(taxa)
             taxa_layout.addWidget(scroll)
 
         taxa_layout.setContentsMargins(10, 5, 10, 5)
 
         return taxa_layout
+
+    def create_removed_suggestions_scroll_box(self, removed_suggestions_text):
+        # Create text box from wiki
+        label = QLabel()
+        label.setScaledContents(True)
+        try:
+            label.setText(removed_suggestions_text)
+        except:
+            label.setText("No entries")
+        label.setWordWrap(True)
+        label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        label.show()
+
+        # Create scroll area for text box
+        scroll = QScrollArea()
+        scroll.setWidget(label)
+        scroll.setWidgetResizable(True)
+        scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        scroll.setFixedHeight(200)
+        scroll.setMaximumWidth(200)
+
+        return scroll
 
     def show_suggestions(self, next_taxa, taxa_iter, i):
 
@@ -481,11 +503,11 @@ class Compare(QMainWindow):
                 layout.itemAt(k).widget().setParent(None)
 
 
-        self.removed_suggestions_label.setParent(None)
+        self.removed_suggestions_scroll_area.setParent(None)
         self.removed_suggestions_count.setText(f"Removed Suggestions: {len(self.removed_suggestions)}")
         if self.removed_suggestions:
-            self.removed_suggestions_label.setText(", ".join(self.removed_suggestions))
-            self.taxa_layout.addWidget(self.removed_suggestions_label, 1)
+            self.removed_suggestions_scroll_area = self.create_removed_suggestions_scroll_box(", \n".join(self.removed_suggestions))
+            self.taxa_layout.addWidget(self.removed_suggestions_scroll_area, 1)
 
         num_suggestions = [len(next_taxa[1]), len(next_taxa[2]), len(next_taxa[3])]
 
@@ -502,7 +524,7 @@ class Compare(QMainWindow):
                 self.taxa_info.setParent(None)
 
                 if self.do_lookup:
-                    self.taxa_info = self.create_wiki_label(next_taxa[0])
+                    self.taxa_info = self.create_wiki_scroll_box(next_taxa[0])
                     h_layout = QHBoxLayout()
                     h_layout.addWidget(self.taxa_info)
                     self.taxa_layout.insertLayout(0, h_layout)
