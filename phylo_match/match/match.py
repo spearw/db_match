@@ -39,11 +39,11 @@ def match(dbs, tree, db_separator="_", levenshtein_num=4):
             suggestions = []
             genus_match = []
             species_match = []
+            genus_name = db_name.split(db_separator, 1)[0]
             try:
-                genus_name = db_name.split(db_separator, 1)[0]
                 species_name = db_name.split(db_separator, 1)[1]
             except:
-                break
+                print(f"WARNING: entry [{db_name}] possibly malformed. Check database.")
 
             found_match = False
             for tree_name in tree:
