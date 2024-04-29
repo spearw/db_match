@@ -384,6 +384,10 @@ class Compare(QMainWindow):
         self.taxa_list = []
         self.species_index = 0
 
+    def closeEvent(self, *args, **kwargs):
+        print("Force exit by user")
+        ## TODO: Add pop up box with option to save progress
+        quit()
 
     def set_db_path(self, db_path):
         self.db_path = db_path
