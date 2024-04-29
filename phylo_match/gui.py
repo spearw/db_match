@@ -293,8 +293,11 @@ class Compare(QMainWindow):
         self.count_layout = QHBoxLayout()
         self.main_layout.addLayout(self.count_layout, 0, 1)
 
-        self.suggestions_layout = QHBoxLayout()
-        self.main_layout.addLayout(self.suggestions_layout, 1, 1)
+        self.suggestions_sub_layout = QHBoxLayout()
+        self.suggestions_scroll_area = QScrollArea()
+
+        self.suggestions_scrolling_layout = QHBoxLayout()
+        self.main_layout.addLayout(self.suggestions_scrolling_layout, 1, 1)
 
         self.manual_entry_layout = QVBoxLayout()
         self.main_layout.addLayout(self.manual_entry_layout, 2, 1, 1, 2)
@@ -415,7 +418,7 @@ class Compare(QMainWindow):
 
         self.compare_mismatch(taxa_iter)
 
-    def create_wiki_scroll_box(self, taxa):
+    def create_wiki_scroll_area(self, taxa):
         # Create text box from wiki
         label = QLabel()
         label.setScaledContents(True)
@@ -464,14 +467,14 @@ class Compare(QMainWindow):
         taxa_layout.addWidget(btn)
 
         if self.do_lookup:
-            scroll = self.create_wiki_scroll_box(taxa)
+            scroll = self.create_wiki_scroll_area(taxa)
             taxa_layout.addWidget(scroll)
 
         taxa_layout.setContentsMargins(10, 5, 10, 5)
 
         return taxa_layout
 
-    def create_removed_suggestions_scroll_box(self, removed_suggestions_text):
+    def create_removed_suggestions_scroll_area(self, removed_suggestions_text):
         # Create text box from wiki
         label = QLabel()
         label.setScaledContents(True)
@@ -493,20 +496,35 @@ class Compare(QMainWindow):
 
         return scroll
 
+    def create_suggestions_scroll_area(self):
+        scroll = QScrollArea()
+        widget = QWidget()
+        widget.setContentsMargins(0, 0, 0, 0)
+        widget.setLayout(self.suggestions_sub_layout)
+        scroll.setWidget(widget)
+        scroll.setWidgetResizable(True)
+        scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        scroll.setFixedHeight(400)
+        scroll.setMaximumWidth(800)
+
+        return scroll
+
     def show_suggestions(self, next_taxa, taxa_iter, i):
 
         # Clear old buttons + count_layout
-        for j in reversed(range(self.suggestions_layout.count())):
-            layout = self.suggestions_layout.itemAt(j).layout()
-            self.suggestions_layout.removeItem(layout)
+        for j in reversed(range(self.suggestions_sub_layout.count())):
+            layout = self.suggestions_sub_layout.itemAt(j).layout()
+            self.suggestions_sub_layout.removeItem(layout)
             for k in reversed(range(layout.count())):
                 layout.itemAt(k).widget().setParent(None)
+
+        self.suggestions_scroll_area.setParent(None)
 
 
         self.removed_suggestions_scroll_area.setParent(None)
         self.removed_suggestions_count.setText(f"Removed Suggestions: {len(self.removed_suggestions)}")
         if self.removed_suggestions:
-            self.removed_suggestions_scroll_area = self.create_removed_suggestions_scroll_box(", \n".join(self.removed_suggestions))
+            self.removed_suggestions_scroll_area = self.create_removed_suggestions_scroll_area(", \n".join(self.removed_suggestions))
             self.taxa_layout.addWidget(self.removed_suggestions_scroll_area, 1)
 
         num_suggestions = [len(next_taxa[1]), len(next_taxa[2]), len(next_taxa[3])]
@@ -524,7 +542,7 @@ class Compare(QMainWindow):
                 self.taxa_info.setParent(None)
 
                 if self.do_lookup:
-                    self.taxa_info = self.create_wiki_scroll_box(next_taxa[0])
+                    self.taxa_info = self.create_wiki_scroll_area(next_taxa[0])
                     h_layout = QHBoxLayout()
                     h_layout.addWidget(self.taxa_info)
                     self.taxa_layout.insertLayout(0, h_layout)
@@ -533,7 +551,10 @@ class Compare(QMainWindow):
 
                     # Add info and image widget to page
                     suggestion_layout = self.create_taxa_layout(suggestion, taxa_iter)
-                    self.suggestions_layout.addLayout(suggestion_layout)
+                    self.suggestions_sub_layout.addLayout(suggestion_layout)
+
+                self.suggestions_scroll_area = self.create_suggestions_scroll_area()
+                self.suggestions_scrolling_layout.addWidget(self.suggestions_scroll_area)
 
 
                 # Check that all category_suggestions were not removed by being previously picked, continue if they were
