@@ -22,6 +22,7 @@ import datetime
 
 from argparse import ArgumentParser
 
+from PyQt6.QtGui import QIntValidator
 from PyQt6.uic.properties import QtWidgets
 from diskcache import Cache
 from PyQt6.QtCore import Qt
@@ -144,6 +145,15 @@ class MainMenu(QMainWindow):
         self.do_lookup.setText("Lookup Taxa Info")
         self.options_layout.addWidget(self.do_lookup)
 
+        # Add lookup index selector
+        self.species_index = 0
+        self.lbl_integer = QLabel("Species Index (from 0)")
+        self.species_index_textbox = QLineEdit()
+        self.species_index_textbox.setPlaceholderText("0")
+        self.species_index_textbox.setValidator(QIntValidator(1, 999, self))
+        self.options_layout.addWidget(self.lbl_integer)
+        self.options_layout.addWidget(self.species_index_textbox)
+
         # Add run button
         self.run_button_spacer = QLabel()
         self.run_button = QPushButton("Run")
@@ -193,7 +203,14 @@ class MainMenu(QMainWindow):
         QApplication.processEvents()
 
         self.dialogs.append(compare_window)
-        dbs, tree = read_files(self.db_path, self.nexus_path)
+
+        self.species_index = self.species_index_textbox.text()
+        if self.species_index == '':
+            self.species_index = 0
+        else:
+            self.species_index = int(self.species_index_textbox.text())
+
+        dbs, tree = read_files(self.db_path, self.nexus_path, self.species_index)
 
         dupes = set()
         # Check for duplicate entries in dbs
@@ -262,6 +279,7 @@ class MainMenu(QMainWindow):
 
         compare_window.__init__(self)
         compare_window.setParent(self)
+        compare_window.species_index = self.species_index
         compare_window.set_db_path(self.db_path)
         compare_window.set_do_lookup(self.do_lookup.isChecked())
 
@@ -364,6 +382,8 @@ class Compare(QMainWindow):
         # Init global variables
         self.removed_suggestions = []
         self.taxa_list = []
+        self.species_index = 0
+
 
     def set_db_path(self, db_path):
         self.db_path = db_path
@@ -395,7 +415,7 @@ class Compare(QMainWindow):
                 self.show()
         else:
             # End of file, record results
-            write_file(self.taxa_list, self.db_path)
+            write_file(self.taxa_list, self.db_path, self.species_index)
             # Open main menu
             self.parent().show()
             self.close()

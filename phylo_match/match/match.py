@@ -43,6 +43,7 @@ def match(dbs, tree, db_separator="_", levenshtein_num=4):
             try:
                 species_name = db_name.split(db_separator, 1)[1]
             except:
+                species_name = ""
                 print(f"WARNING: entry [{db_name}] possibly malformed. Check database.")
 
             found_match = False
@@ -66,7 +67,7 @@ def match(dbs, tree, db_separator="_", levenshtein_num=4):
     return output, perfect_matches
 
 
-def read_files(db_path, tree_path):
+def read_files(db_path, tree_path, species_name_index):
     dbs = []
     trees = []
     filenames = []
@@ -82,8 +83,8 @@ def read_files(db_path, tree_path):
                 db = []
                 for line in f:
                     # Get name for every line
-                    name = line.split(",", 1)[0]
-                    db.append(name)
+                    name = line.split(",")[species_name_index]
+                    db.append(name.strip())
 
                 # Remove first line of db (info line)
                 db.pop(0)
@@ -130,7 +131,7 @@ def append_id(filename):
 
 # Takes the completed taxa_list and writes a new file that includes the new taxa names and the rest of the data from db_path
 # TODO: handle multiple input dbs, perhaps with search
-def write_file(taxa_list, db_path):
+def write_file(taxa_list, db_path, species_index):
 
     outfile_path = append_id(db_path)
 
@@ -146,11 +147,11 @@ def write_file(taxa_list, db_path):
                     outf.write(line)
                     i += 1
                 else:
-                    csv_line = line.split(",")
+                    csv_list = line.strip().split(",")
                     # Replace first line with new name, only if not blank
                     if taxa_list[i - 1] != "":
-                        csv_line[0] = taxa_list[i - 1]
-                    outf.write(",".join(csv_line))
+                        csv_list[species_index] = taxa_list[i - 1]
+                    outf.write(f"{','.join(csv_list)}\n")
                     i += 1
 
 
