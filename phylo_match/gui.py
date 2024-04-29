@@ -21,6 +21,8 @@ import sys
 import datetime
 
 from argparse import ArgumentParser
+
+from PyQt6.uic.properties import QtWidgets
 from diskcache import Cache
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, \
@@ -192,6 +194,21 @@ class MainMenu(QMainWindow):
 
         self.dialogs.append(compare_window)
         dbs, tree = read_files(self.db_path, self.nexus_path)
+
+        dupes = set()
+        # Check for duplicate entries in dbs
+        for db in dbs:
+            db_dupes = set([x for x in db if db.count(x) > 1])
+            dupes = dupes.union(db_dupes)
+
+        if len(dupes) > 0:
+            msg = QMessageBox()
+            # msg.setIcon(QMessageBox.Critical)
+            msg.setText("Warning: Duplicate Entries")
+            msg.setInformativeText(f"{', '.join(dupes)} appear multiple times")
+            msg.setWindowTitle("Duplicate Entries")
+            msg.exec()
+
         taxa_list, compare_window.perfect_matches = match(dbs, tree, "_", 4)
 
         # If option for online lookup, do lookup
