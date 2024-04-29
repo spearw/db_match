@@ -30,6 +30,11 @@ Install Phylo-Match:
 pip3 install phylo-match
 ```
 
+Upgrade Phylo-Match:
+```bash
+pip install phylo-match -U
+```
+
 
 ## Usage
 
