@@ -281,6 +281,7 @@ class MainMenu(QMainWindow):
 
         compare_window.__init__(self)
         compare_window.setParent(self)
+        compare_window.move(self.pos())
         compare_window.species_index = self.species_index
         compare_window.set_db_path(self.db_path)
         compare_window.set_do_lookup(self.do_lookup.isChecked())
