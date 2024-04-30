@@ -403,9 +403,10 @@ class Compare(QMainWindow):
                                          "Are you sure want to quit? Progress will not be saved",
                                          QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
             if close == QMessageBox.StandardButton.Yes:
-                print("Force exit by user")
+                # Open main menu
+                self.parent().show()
+                self.parent().move(self.pos())
                 event.accept()
-                quit()
             else:
                 event.ignore()
 
@@ -448,6 +449,7 @@ class Compare(QMainWindow):
 
             # Open main menu
             self.parent().show()
+            self.parent().move(self.pos())
 
             # Close window
             self.force_quit = True
