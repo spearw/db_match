@@ -550,7 +550,7 @@ class Compare(QMainWindow):
 
         return scroll
 
-    def show_suggestions(self, next_taxa, taxa_iter, i):
+    def show_suggestions(self, next_taxa, taxa_iter, match_type):
 
         # Clear old buttons + count_layout
         for j in reversed(range(self.suggestions_sub_layout.count())):
@@ -560,6 +560,7 @@ class Compare(QMainWindow):
                 layout.itemAt(k).widget().setParent(None)
 
         self.suggestions_scroll_area.setParent(None)
+        self.taxa_info.setParent(None)
 
 
         self.removed_suggestions_scroll_area.setParent(None)
@@ -570,72 +571,66 @@ class Compare(QMainWindow):
 
         num_suggestions = [len(next_taxa[1]), len(next_taxa[2]), len(next_taxa[3])]
 
-        if i <= 3:
-            category_suggestions = next_taxa[i]
-            while not category_suggestions:
-                i += 1
-                if i > 3:
-                    break
-                category_suggestions = next_taxa[i]
+        category_suggestions = next_taxa[match_type]
+        while not category_suggestions:
+            match_type += 1
+            if match_type > 3:
+                break
+            category_suggestions = next_taxa[match_type]
 
-            if i <= 3:
-                # reset and load taxa, if possible
-                self.taxa_info.setParent(None)
+        # reset and load taxa, if possible
+        self.taxa_info.setParent(None)
 
-                if self.do_lookup:
-                    self.taxa_info = self.create_wiki_scroll_area(next_taxa[0])
-                    h_layout = QHBoxLayout()
-                    h_layout.addWidget(self.taxa_info)
-                    self.taxa_layout.insertLayout(0, h_layout)
+        if self.do_lookup:
+            self.taxa_info = self.create_wiki_scroll_area(next_taxa[0])
+            h_layout = QHBoxLayout()
+            h_layout.addWidget(self.taxa_info)
+            self.taxa_layout.insertLayout(0, h_layout)
 
-                for suggestion in category_suggestions:
+        for suggestion in category_suggestions:
 
-                    # Add info and image widget to page
-                    suggestion_layout = self.create_taxa_layout(suggestion, taxa_iter)
-                    self.suggestions_sub_layout.addLayout(suggestion_layout)
+            # Add info and image widget to page
+            suggestion_layout = self.create_taxa_layout(suggestion, taxa_iter)
+            self.suggestions_sub_layout.addLayout(suggestion_layout)
 
-                self.suggestions_scroll_area = self.create_suggestions_scroll_area()
-                self.suggestions_scrolling_layout.addWidget(self.suggestions_scroll_area)
+        self.suggestions_scroll_area = self.create_suggestions_scroll_area()
+        self.suggestions_scrolling_layout.addWidget(self.suggestions_scroll_area)
 
 
-                # Check that all category_suggestions were not removed by being previously picked, continue if they were
-                if not category_suggestions:
-                    i += 1
-                    self.show_suggestions(next_taxa, taxa_iter, i)
+        # TODO: get this logic outside of the category_suggestions, so it's not doing it every time
+        # Set button text
+        self.similar_entries_count.setText(f"Similar Entries: {num_suggestions[0]}")
+        self.same_species_count.setText(f"Same Species: {num_suggestions[1]}")
+        self.same_genus_count.setText(f"Same Genus: {num_suggestions[2]}")
 
-            # TODO: get this logic outside of the category_suggestions, so it's not doing it every time
-            # Set button text
-            self.similar_entries_count.setText(f"Similar Entries: {num_suggestions[0]}")
-            self.same_species_count.setText(f"Same Species: {num_suggestions[1]}")
-            self.same_genus_count.setText(f"Same Genus: {num_suggestions[2]}")
+        # Unlink buttons, if needed
+        try:
+            self.similar_entries_count.clicked.disconnect()
+        except Exception:
+            pass
+        try:
+            self.same_species_count.clicked.disconnect()
+        except Exception:
+            pass
+        try:
+            self.same_genus_count.clicked.disconnect()
+        except Exception:
+            pass
 
-            # Unlink buttons, if needed
-            try:
-                self.similar_entries_count.clicked.disconnect()
-            except Exception:
-                pass
-            try:
-                self.same_species_count.clicked.disconnect()
-            except Exception:
-                pass
-            try:
-                self.same_genus_count.clicked.disconnect()
-            except Exception:
-                pass
+        # Link buttons, if category_suggestions exist for those categories
+        ## TODO: Refactor to use strings instead of ints for clearer indications of what these numbers mean
+        if num_suggestions[0] > 0: self.similar_entries_count.clicked.connect(
+            lambda: self.show_suggestions(next_taxa, taxa_iter, 1))
+        if num_suggestions[1] > 0: self.same_species_count.clicked.connect(
+            lambda: self.show_suggestions(next_taxa, taxa_iter, 2))
+        if num_suggestions[2] > 0: self.same_genus_count.clicked.connect(
+            lambda: self.show_suggestions(next_taxa, taxa_iter, 3))
 
-            # Link buttons, if category_suggestions exist for those categories
-            if num_suggestions[0] > 0: self.similar_entries_count.clicked.connect(
-                lambda: self.show_suggestions(next_taxa, taxa_iter, 1))
-            if num_suggestions[1] > 0: self.same_species_count.clicked.connect(
-                lambda: self.show_suggestions(next_taxa, taxa_iter, 2))
-            if num_suggestions[2] > 0: self.same_genus_count.clicked.connect(
-                lambda: self.show_suggestions(next_taxa, taxa_iter, 3))
-
-        if i == 1:
+        if match_type == 1:
             self.setWindowTitle("Similar Entries")
-        elif i == 2:
+        elif match_type == 2:
             self.setWindowTitle("Same Species")
-        elif i == 3:
+        elif match_type == 3:
             self.setWindowTitle("Same Genus")
         else:
             self.setWindowTitle("No Suggestions")
