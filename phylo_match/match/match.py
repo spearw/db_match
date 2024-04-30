@@ -37,6 +37,7 @@ def match(dbs, tree, db_separator="_", levenshtein_num=4):
     for db in dbs:
         for db_name in db:
             suggestions = []
+            loose_suggestions = []
             genus_match = []
             species_match = []
             genus_name = db_name.split(db_separator, 1)[0]
@@ -48,16 +49,31 @@ def match(dbs, tree, db_separator="_", levenshtein_num=4):
 
             found_match = False
             for tree_name in tree:
+
+                tree_genus_name = tree_name.split(db_separator, 1)[0]
+                try:
+                    tree_species_name = tree_name.split(db_separator, 1)[1]
+                except:
+                    tree_species_name = ""
+                    print(f"WARNING: tree entry [{tree_name}] possibly malformed. Check tree.")
+
                 if db_name == tree_name:
                     found_match = True
                     break
                 elif levenshtein_distance(db_name, tree_name) < difference_threshold:
                     suggestions.append(tree_name)
-                elif re.match(rf".*[_| ]{species_name}$", tree_name):
-                    species_match.append(tree_name)
-                elif re.match(rf"^{genus_name}[_| ]", tree_name):
+                elif genus_name == tree_genus_name:
                     genus_match.append(tree_name)
+                elif levenshtein_distance(genus_name, tree_genus_name) < difference_threshold:
+                    loose_suggestions.append(tree_name)
+                elif species_name == tree_species_name:
+                    species_match.append(tree_name)
+                elif levenshtein_distance(species_name, tree_species_name) < difference_threshold:
+                    loose_suggestions.append(tree_name)
 
+            # If suggestions is empty, add loose suggestions (levenshtein applied to genus and species independently)
+            if len(suggestions) == 0:
+                suggestions = suggestions + loose_suggestions
             if found_match:
                 output.append(db_name)
                 perfect_matches.append(db_name)
