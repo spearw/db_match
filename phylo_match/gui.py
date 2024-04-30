@@ -22,7 +22,7 @@ import datetime
 
 from argparse import ArgumentParser
 
-from PyQt6.QtGui import QIntValidator
+from PyQt6.QtGui import QIntValidator, QCloseEvent
 from PyQt6.uic.properties import QtWidgets
 from diskcache import Cache
 from PyQt6.QtCore import Qt
@@ -85,6 +85,7 @@ class MainMenu(QMainWindow):
         self.prog_label = QLabel("")
         self.progress_layout.addWidget(self.prog_label)
         self.prog_bar = QProgressBar(self)
+        self.prog_bar.hide()
         self.prog_bar.setValue(0)
         self.progress_layout.addWidget(self.prog_bar)
 
@@ -199,6 +200,7 @@ class MainMenu(QMainWindow):
         compare_window = Compare(self)
 
         self.prog_label.setText("Analyzing...")
+        self.prog_bar.show()
         self.prog_bar.setValue(0)
         QApplication.processEvents()
 
@@ -285,7 +287,11 @@ class MainMenu(QMainWindow):
 
         compare_window.set_cache(cache)
         compare_window.compare_mismatch(iter(taxa_list))
+
         self.hide()
+        self.prog_bar.hide()
+        self.prog_bar.setValue(0)
+        self.prog_label.setText("")
 
 
 # dialog.close()
@@ -383,11 +389,24 @@ class Compare(QMainWindow):
         self.removed_suggestions = []
         self.taxa_list = []
         self.species_index = 0
+        self.force_quit = False
 
-    def closeEvent(self, *args, **kwargs):
-        print("Force exit by user")
-        ## TODO: Add pop up box with option to save progress
-        quit()
+    def closeEvent(self, event, *args, **kwargs):
+
+        if self.force_quit:
+            event.accept()
+        else:
+            ## TODO: Add pop up box with option to save progress
+            close = QMessageBox.question(self,
+                                         "QUIT",
+                                         "Are you sure want to quit? Progress will not be saved",
+                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+            if close == QMessageBox.StandardButton.Yes:
+                print("Force exit by user")
+                event.accept()
+                quit()
+            else:
+                event.ignore()
 
     def set_db_path(self, db_path):
         self.db_path = db_path
@@ -419,9 +438,18 @@ class Compare(QMainWindow):
                 self.show()
         else:
             # End of file, record results
-            write_file(self.taxa_list, self.db_path, self.species_index)
+            filepath = write_file(self.taxa_list, self.db_path, self.species_index)
+
+            # Success message
+            QMessageBox.information(self,
+                                     "Complete!",
+                                     f"Selections saved as {filepath}",)
+
             # Open main menu
             self.parent().show()
+
+            # Close window
+            self.force_quit = True
             self.close()
 
     def make_confirm_function(self, suggestion, taxa_iter, compare_window):

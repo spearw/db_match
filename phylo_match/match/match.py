@@ -154,6 +154,8 @@ def write_file(taxa_list, db_path, species_index):
                     outf.write(f"{','.join(csv_list)}\n")
                     i += 1
 
+    return outfile_path
+
 
 def get_wiki_image(search_term):
     WIKI_REQUEST = 'http://en.wikipedia.org/w/api.php?action=query&prop=pageimages&format=json&piprop=original&titles='
