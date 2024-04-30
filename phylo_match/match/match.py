@@ -50,6 +50,8 @@ def match(dbs, tree, db_separator="_", levenshtein_num=4):
             found_match = False
             for tree_name in tree:
 
+                loose_suggestion = False
+
                 tree_genus_name = tree_name.split(db_separator, 1)[0]
                 try:
                     tree_species_name = tree_name.split(db_separator, 1)[1]
@@ -60,25 +62,31 @@ def match(dbs, tree, db_separator="_", levenshtein_num=4):
                 if db_name == tree_name:
                     found_match = True
                     break
+                # Match by similarity
                 elif levenshtein_distance(db_name, tree_name) < difference_threshold:
                     suggestions.append(tree_name)
+                # Match by genus
                 elif genus_name == tree_genus_name:
                     genus_match.append(tree_name)
-                elif levenshtein_distance(genus_name, tree_genus_name) < difference_threshold:
+                # Match by similarity (genus only)
+                elif levenshtein_distance(genus_name, tree_genus_name) < (difference_threshold - 1):
                     loose_suggestions.append(tree_name)
+                # Match by species
                 elif species_name == tree_species_name:
                     species_match.append(tree_name)
-                elif levenshtein_distance(species_name, tree_species_name) < difference_threshold:
+                # Match by similarity (species only)
+                elif levenshtein_distance(species_name, tree_species_name) < (difference_threshold - 1):
                     loose_suggestions.append(tree_name)
 
             # If suggestions is empty, add loose suggestions (levenshtein applied to genus and species independently)
-            if len(suggestions) == 0:
+            if len(suggestions) == 0 and len(loose_suggestions) > 0:
                 suggestions = suggestions + loose_suggestions
+                loose_suggestion = True
             if found_match:
                 output.append(db_name)
                 perfect_matches.append(db_name)
             else:
-                output.append([db_name, suggestions, species_match, genus_match])
+                output.append([db_name, suggestions, species_match, genus_match, loose_suggestion])
 
     return output, perfect_matches
 

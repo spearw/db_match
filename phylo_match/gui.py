@@ -430,9 +430,20 @@ class Compare(QMainWindow):
             else:
                 db_taxa = next_taxa[0]
 
-                i = 1
-
                 next_taxa = self.remove_chosen_entries(next_taxa)
+
+                loose_suggestions = next_taxa[4]  # bool indicating whether suggestion has loosened params
+
+                # If suggestions are loose, default to showing them last
+                if loose_suggestions:
+                    if len(next_taxa[2]) > 0:
+                        i = 2
+                    elif len(next_taxa[3]) > 0:
+                        i = 3
+                    else:
+                        i = 1
+                else:
+                    i = 1
 
                 self.show_suggestions(next_taxa, taxa_iter, i)
 
@@ -470,7 +481,7 @@ class Compare(QMainWindow):
 
         taxa_name = taxa[0]
 
-        for i, taxa_suggestions in enumerate(taxa):
+        for i, taxa_suggestions in enumerate(taxa[0:-1]):
             if type(taxa_suggestions) != str:
                 for suggestion in taxa_suggestions:
                     # Remove suggestions that have already been chosen
@@ -630,7 +641,11 @@ class Compare(QMainWindow):
 
         # TODO: get this logic outside of the category_suggestions, so it's not doing it every time
         # Set button text
-        self.similar_entries_count.setText(f"Similar Entries: {num_suggestions[0]}")
+        loose_matching = next_taxa[4]
+        if loose_matching:
+            self.similar_entries_count.setText(f"Similar Entries (Lenient): {num_suggestions[0]}")
+        else:
+            self.similar_entries_count.setText(f"Similar Entries: {num_suggestions[0]}")
         self.same_species_count.setText(f"Same Species: {num_suggestions[1]}")
         self.same_genus_count.setText(f"Same Genus: {num_suggestions[2]}")
 
